@@ -5,8 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GHG Yemək - Skaner</title>
     
-    <!-- html5-qrcode skaner -->
-    <script async src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     
     <style>
         * {
@@ -23,7 +22,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 800px;
             margin: 0 auto;
         }
 
@@ -39,21 +38,17 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
-        .content-wrapper {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .section {
+        .scanner-section {
             background: white;
             border-radius: 20px;
             padding: 30px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
 
-        .scanner-container {
+        .scanner-section h2 {
             text-align: center;
+            margin-bottom: 20px;
+            color: #333;
         }
 
         #reader {
@@ -62,63 +57,119 @@
             overflow: hidden;
         }
 
-        /* ✅ SKAN SIYAHISI */
-        .scan-list {
-            max-height: 650px;
-            overflow-y: auto;
+        /* ✅ TƏSDİQLƏNMƏ EKRANI */
+        .success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(102, 126, 234, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: fadeIn 0.3s ease;
         }
 
-        .scan-list h2 {
-            color: #333;
+        .success-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideUp 0.4s ease;
+        }
+
+        .success-icon {
+            font-size: 80px;
             margin-bottom: 20px;
-            text-align: center;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 15px;
         }
 
-        .scan-item {
-            background: #f8f9fa;
-            border: 2px solid #4caf50;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 12px;
-            animation: slideIn 0.3s;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .scan-item-status {
-            display: inline-block;
-            background: #4caf50;
-            color: white;
-            padding: 6px 14px;
-            border-radius: 12px;
-            font-size: 12px;
+        .success-title {
+            font-size: 32px;
+            color: #4caf50;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 30px;
         }
 
-        .scan-item-name {
-            font-size: 16px;
+        .success-details {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .detail-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .detail-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-icon {
+            font-size: 24px;
+            margin-right: 15px;
+            width: 30px;
+            text-align: center;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #666;
+            margin-right: 10px;
+        }
+
+        .detail-value {
             font-weight: bold;
             color: #333;
-            margin-bottom: 8px;
         }
 
-        .scan-item-details {
-            font-size: 13px;
-            color: #666;
-            line-height: 1.6;
-        }
-
-        .scan-item-details p {
-            margin: 4px 0;
-        }
-
-        .empty-message {
-            text-align: center;
-            color: #999;
-            padding: 40px 20px;
+        .countdown {
             font-size: 14px;
+            color: #999;
+            margin-top: 20px;
+        }
+
+        .countdown-bar {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .countdown-progress {
+            height: 100%;
+            background: #4caf50;
+            border-radius: 2px;
+            width: 100%;
+            transition: width 0.1s linear;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .sync-status {
@@ -134,52 +185,15 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
 
-        .sync-loading {
-            background: #ff9800;
-        }
+        .sync-loading { background: #ff9800; }
+        .sync-success { background: #4caf50; }
+        .sync-error { background: #f44336; }
 
-        .sync-success {
-            background: #4caf50;
-        }
-
-        .sync-error {
-            background: #f44336;
-        }
-
-        @media (max-width: 1024px) {
-            .content-wrapper {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        /* Scrollbar Stil */
-        .scan-list::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .scan-list::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-
-        .scan-list::-webkit-scrollbar-thumb {
-            background: #667eea;
-            border-radius: 10px;
-        }
-
-        .scan-list::-webkit-scrollbar-thumb:hover {
-            background: #764ba2;
+        @media (max-width: 600px) {
+            .header h1 { font-size: 2em; }
+            .success-content { padding: 30px 20px; }
+            .success-title { font-size: 24px; }
+            .detail-row { font-size: 16px; }
         }
     </style>
 </head>
@@ -187,38 +201,64 @@
 
     <div class="container">
         <div class="header">
-            <h1>📷 SKANER</h1>
+            <h1>📷 QR SKANER</h1>
         </div>
 
-        <div class="content-wrapper">
-            <!-- ✅ SKANER -->
-            <div class="section">
-                <h2 style="text-align: center; margin-bottom: 20px;">📱 QR Skaneri</h2>
-                <div class="scanner-container">
-                    <div id="reader"></div>
+        <div class="scanner-section">
+            <h2>📱 Kameranı talona yaxınlaşdırın</h2>
+            <div id="reader"></div>
+        </div>
+    </div>
+
+    <!-- ✅ TƏSDİQLƏNMƏ EKRANI -->
+    <div class="success-overlay" id="successOverlay">
+        <div class="success-content">
+            <div class="success-icon">✅</div>
+            <div class="success-title">TƏSDİQLƏNDİ</div>
+            
+            <div class="success-details">
+                <div class="detail-row">
+                    <span class="detail-icon">👤</span>
+                    <span class="detail-label">Ad Soyad:</span>
+                    <span class="detail-value" id="displayName">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-icon">🆔</span>
+                    <span class="detail-label">ID:</span>
+                    <span class="detail-value" id="displayId">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-icon">🍽️</span>
+                    <span class="detail-label">Talon:</span>
+                    <span class="detail-value" id="displayTicket">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-icon">📅</span>
+                    <span class="detail-label">Tarix:</span>
+                    <span class="detail-value" id="displayDate">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-icon">🕐</span>
+                    <span class="detail-label">Saat:</span>
+                    <span class="detail-value" id="displayTime">-</span>
                 </div>
             </div>
-
-            <!-- ✅ SKAN SIYAHISI -->
-            <div class="section scan-list">
-                <h2>✅ Skan Edilənlər</h2>
-                <div id="scanHistory">
-                    <div class="empty-message">📭 Hələ skan yoxdur</div>
-                </div>
+            
+            <div class="countdown">Yenidən skan üçün gözləyin...</div>
+            <div class="countdown-bar">
+                <div class="countdown-progress" id="countdownBar"></div>
             </div>
         </div>
     </div>
 
-    <!-- Sync status -->
     <div class="sync-status" id="syncStatus"></div>
 
     <script>
-        // ✅ GOOGLE APPS SCRIPT URL
         const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwdXawdXXV2y-LduvoNvK8z3Z4ISbh72QDJ_-JwFoz5qL9GpvwtXCdNOnqEcYNguPr_/exec';
         
         let html5QrcodeScanner = null;
         let scanActive = true;
-        let scanHistory = [];
+        const SCAN_DELAY = 4000; // 4 saniyə gözlə
         
         const TICKET_MAP = {
             'b': 'breakfast',
@@ -234,119 +274,79 @@
             { id: 'dry', name: 'Quru Talon', emoji: '📦' }
         ];
 
-        // ============================================================
-        // BAŞLANĞIC
-        // ============================================================
-        window.addEventListener('load', function() {
-            console.log('📄 Scanner səhifəsi yükləndi');
+        function waitForLibrary() {
+            return new Promise((resolve) => {
+                if (typeof Html5QrcodeScanner !== 'undefined') {
+                    resolve();
+                } else {
+                    const checkInterval = setInterval(() => {
+                        if (typeof Html5QrcodeScanner !== 'undefined') {
+                            clearInterval(checkInterval);
+                            resolve();
+                        }
+                    }, 100);
+                }
+            });
+        }
+
+        window.addEventListener('load', async function() {
+            await waitForLibrary();
             initScanner();
-            loadScanHistory();
         });
 
-        // ============================================================
-        // TARIXÇƏ YÜKLƏ
-        // ============================================================
-        function loadScanHistory() {
-            const saved = localStorage.getItem('scanHistory');
-            if (saved) {
-                scanHistory = JSON.parse(saved);
-                updateHistoryUI();
-            }
-        }
-
-        function saveScanHistory() {
-            localStorage.setItem('scanHistory', JSON.stringify(scanHistory));
-        }
-
-        function updateHistoryUI() {
-            const historyDiv = document.getElementById('scanHistory');
-            
-            if (scanHistory.length === 0) {
-                historyDiv.innerHTML = '<div class="empty-message">📭 Hələ skan yoxdur</div>';
-                return;
-            }
-
-            historyDiv.innerHTML = scanHistory.map((item) => `
-                <div class="scan-item">
-                    <span class="scan-item-status">✅ TƏSDİQLƏNDİ</span>
-                    <div class="scan-item-name">${item.emoji} ${item.name}</div>
-                    <div class="scan-item-details">
-                        <p>🆔 <strong>ID:</strong> ${item.empId}</p>
-                        <p>📅 <strong>Tarix:</strong> ${item.date}</p>
-                        <p>🕐 <strong>Saat:</strong> ${item.time}</p>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // ============================================================
-        // SKANER İNİSLALIZASİYASI
-        // ============================================================
         function initScanner() {
-            console.log('🎬 Skaner başlanır...');
-            
-            html5QrcodeScanner = new Html5QrcodeScanner(
-                "reader",
-                { 
-                    fps: 10, 
-                    qrbox: { width: 250, height: 250 },
-                    aspectRatio: 1.0
-                },
-                false
-            );
+            try {
+                html5QrcodeScanner = new Html5QrcodeScanner(
+                    "reader",
+                    { 
+                        fps: 10, 
+                        qrbox: { width: 250, height: 250 },
+                        aspectRatio: 1.0
+                    },
+                    false
+                );
 
-            html5QrcodeScanner.render(onScanSuccess, onScanError);
-            console.log('✅ Skaner işləyir');
+                html5QrcodeScanner.render(onScanSuccess, onScanError);
+            } catch (e) {
+                console.error('Skaner xətası:', e);
+            }
         }
 
-        // ============================================================
-        // SKAN SƏVIYYƏTI
-        // ============================================================
         function onScanSuccess(decodedText, decodedResult) {
             if (!scanActive) return;
             
-            console.log('✅ QR skanlandı:', decodedText);
             scanActive = false;
             
             try {
                 processScan(decodedText);
             } catch (e) {
-                console.error('❌ Xəta:', e);
-                console.log('Xətalı QR məlumatı:', decodedText);
-                setTimeout(() => { scanActive = true; }, 2000);
+                console.error('Xəta:', e);
+                scanActive = true;
             }
         }
 
         function onScanError(error) {
-            // Səssiz - səhifə yüklənərkən göstərişlər buraya yazılır
+            // Səssiz
         }
 
-        // ============================================================
-        // SKAN MƏLUMATLARI İŞLƏ
-        // ============================================================
-        function processScan(qrDataString) {
-            console.log('📊 QR məlumatı işlənir:', qrDataString);
+        async function processScan(qrDataString) {
+            console.log('QR skanlandı:', qrDataString);
             
             const parts = qrDataString.split('|');
             
             if (parts.length < 2) {
-                console.error('❌ Yanlış format - | ayırıcısı tapılmadı');
-                setTimeout(() => { scanActive = true; }, 2000);
+                alert('❌ Yanlış QR formatı');
+                scanActive = true;
                 return;
             }
             
-            const empId = parts[0];
-            const typeCode = parts[1];
+            const empId = parts[0].trim();
+            const typeCode = parts[1].trim();
             const typeId = TICKET_MAP[typeCode];
             
-            console.log('📋 Parsed QR:');
-            console.log('   - empId:', empId);
-            console.log('   - typeCode:', typeCode);
-            console.log('   - typeId:', typeId);
-            
             if (!typeId) {
-                console.error('❌ Bilinməyən talon kodu:', typeCode);
-                setTimeout(() => { scanActive = true; }, 2000);
+                alert('❌ Bilinməyən talon kodu: ' + typeCode);
+                scanActive = true;
                 return;
             }
 
@@ -355,21 +355,21 @@
             const dateStr = now.toLocaleDateString('az-AZ');
             const timeStr = now.toLocaleTimeString('az-AZ');
 
-            console.log('✅ Skan uğurludur:');
-            console.log('   - Talon:', ticketType.name);
-            console.log('   - Əməkdaş ID:', empId);
-            console.log('   - Tarix:', dateStr);
-            console.log('   - Saat:', timeStr);
+            // ✅ AD SOYAD - əgər QR-da varsa (format: ID|TYPE|ADSOYAD)
+            let fullName = 'Bilinməyən';
+            if (parts.length >= 3) {
+                fullName = parts[2].trim();
+            }
 
-            // ✅ TARIXƏ ƏLAVƏ ET
-            addToHistory(empId, ticketType.name, ticketType.emoji, dateStr, timeStr);
+            // ✅ EKRANDA GÖSTƏR
+            showSuccessScreen(fullName, empId, ticketType.name, dateStr, timeStr);
 
-            // ✅ SHEET-ƏYAZℂ
+            // ✅ GOOGLE SHEETS-Ə GÖNDƏR
             const sheetData = {
                 tarix: dateStr,
                 saat: timeStr,
                 id: empId,
-                adSoyad: 'Bilinməyan',
+                adSoyad: fullName,
                 talonNovu: ticketType.name,
                 talonId: 'QR-' + Date.now(),
                 status: 'Təsdiqləndi'
@@ -377,81 +377,68 @@
 
             sendToSheet(sheetData);
 
-            // ✅ 3 SANİYƏ SONRA YENIDƏN SKAN
-            setTimeout(() => { 
-                scanActive = true;
-                console.log('🔄 Yenidən skan hazır');
-            }, 3000);
+            // ✅ GERİ SAYIM VƏ YENİDƏN SKAN
+            startCountdown();
         }
 
-        // ============================================================
-        // TARIXƏ ƏLAVƏ ET
-        // ============================================================
-        function addToHistory(empId, name, emoji, dateStr, timeStr) {
-            scanHistory.unshift({
-                empId,
-                name,
-                emoji,
-                date: dateStr,
-                time: timeStr,
-                timestamp: Date.now()
-            });
-
-            // Max 100 skan saxla
-            if (scanHistory.length > 100) {
-                scanHistory = scanHistory.slice(0, 100);
-            }
-
-            saveScanHistory();
-            updateHistoryUI();
-            console.log('💾 Tarixə əlavə olundu. Cəmi skan:', scanHistory.length);
+        function showSuccessScreen(name, id, ticket, date, time) {
+            document.getElementById('displayName').textContent = name;
+            document.getElementById('displayId').textContent = id;
+            document.getElementById('displayTicket').textContent = ticket;
+            document.getElementById('displayDate').textContent = date;
+            document.getElementById('displayTime').textContent = time;
+            
+            document.getElementById('successOverlay').style.display = 'flex';
         }
 
-        // ============================================================
-        // GOOGLE SHEETS-ƏYAZℂ
-        // ============================================================
+        function hideSuccessScreen() {
+            document.getElementById('successOverlay').style.display = 'none';
+        }
+
+        function startCountdown() {
+            const bar = document.getElementById('countdownBar');
+            let width = 100;
+            const interval = 50; // 50ms
+            const step = 100 / (SCAN_DELAY / interval);
+            
+            const timer = setInterval(() => {
+                width -= step;
+                bar.style.width = width + '%';
+                
+                if (width <= 0) {
+                    clearInterval(timer);
+                    hideSuccessScreen();
+                    scanActive = true;
+                }
+            }, interval);
+        }
+
         async function sendToSheet(data) {
-            showSyncStatus('Cədvələ yazılır...', 'loading');
+            showSyncStatus('Yazılır...', 'loading');
             
             try {
-                console.log('📤 Google Sheets API-yə göndərilir:');
-                console.log('URL:', SHEET_API_URL);
-                console.log('Məlumat:', data);
+                const params = new URLSearchParams({
+                    action: 'add',
+                    ...data
+                });
                 
-                const response = await fetch(SHEET_API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
+                const url = `${SHEET_API_URL}?${params.toString()}`;
+                
+                await fetch(url, {
+                    method: 'GET',
+                    mode: 'no-cors'
                 });
 
-                console.log('📥 Response Status:', response.status);
-                console.log('📥 Response OK:', response.ok);
-
-                const responseText = await response.text();
-                console.log('📥 Response Text:', responseText);
-
-                if (response.ok || response.status === 200) {
-                    showSyncStatus('✅ Cədvələ yazıldı!', 'success');
-                    console.log('✅ Uğurlu yazıldı');
-                } else {
-                    showSyncStatus('⚠️ Cavab: ' + response.status, 'error');
-                    console.warn('⚠️ Status:', response.status);
-                }
+                showSyncStatus('✅ Yazıldı!', 'success');
                 
             } catch (error) {
-                console.error('❌ Fetch Xətası:', error);
-                console.error('Xəta Mesajı:', error.message);
-                showSyncStatus('❌ Xəta: ' + error.message, 'error');
+                console.error('Xəta:', error);
+                showSyncStatus('❌ Xəta', 'error');
             } finally {
-                setTimeout(() => { hideSyncStatus(); }, 3000);
+                setTimeout(() => { hideSyncStatus(); }, 2000);
             }
         }
 
-        // ============================================================
-        // SYNC STATUS
-        // ============================================================
         function showSyncStatus(message, type) {
             const status = document.getElementById('syncStatus');
             status.textContent = message;
