@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GHG Yemək Talonu</title>
+    <title>GHG Yemək Skaner</title>
     
-    <!-- QRCode.js CDN -->
+    <!-- QRCode.js -->
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <!-- Html5Qrcode (kamera skaner) -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     
     <style>
         * {
@@ -18,126 +20,255 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f5f5f5;
             min-height: 100vh;
-            padding: 10px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 0.9em;
         }
 
         .container {
-            max-width: 100%;
+            max-width: 800px;
             margin: 0 auto;
+            padding: 20px;
         }
 
-        .login-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 15px;
-        }
-
-        .login-box {
+        /* Skaner bölməsi */
+        .scanner-section {
             background: white;
-            padding: 30px 25px;
             border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .scanner-box {
             width: 100%;
             max-width: 400px;
-            text-align: center;
+            margin: 0 auto;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 3px solid #667eea;
         }
 
-        .login-box h1 {
-            color: #667eea;
-            margin-bottom: 8px;
-            font-size: 1.8em;
-        }
-
-        .login-box p {
-            color: #666;
-            margin-bottom: 25px;
-            font-size: 0.95em;
-        }
-
-        .form-group {
-            margin-bottom: 18px;
-            text-align: left;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            color: #333;
-            font-weight: 600;
-            font-size: 0.9em;
-        }
-
-        .form-group input {
+        #reader {
             width: 100%;
-            padding: 14px;
-            border: 2px solid #e0e0e0;
-            border-radius: 12px;
-            font-size: 16px;
-            transition: all 0.3s;
-            -webkit-appearance: none;
         }
 
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .btn {
-            width: 100%;
-            padding: 16px;
-            border: none;
+        /* Status indicator */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px;
+            margin-top: 15px;
             border-radius: 12px;
-            cursor: pointer;
-            font-size: 16px;
             font-weight: 600;
-            transition: all 0.3s;
-            -webkit-appearance: none;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+        .status-waiting {
+            background: #fff3e0;
+            color: #e65100;
         }
 
-        .btn-success {
-            background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
-            color: white;
-            margin-top: 10px;
+        .status-success {
+            background: #e8f5e9;
+            color: #2e7d32;
         }
 
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .btn:active {
-            transform: scale(0.98);
-        }
-
-        .error-message {
+        .status-error {
             background: #ffebee;
             color: #c62828;
-            padding: 12px;
-            border-radius: 10px;
-            margin-top: 15px;
-            display: none;
-            font-size: 0.9em;
+        }
+
+        .status-scanning {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        /* Son skan edilənlər siyahısı */
+        .recent-scans {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .recent-scans h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .scan-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .scan-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .scan-item:last-child {
+            border-bottom: none;
+        }
+
+        .scan-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .scan-icon.success {
+            background: #e8f5e9;
+        }
+
+        .scan-icon.error {
+            background: #ffebee;
+        }
+
+        .scan-icon.warning {
+            background: #fff3e0;
+        }
+
+        .scan-info {
+            flex: 1;
+        }
+
+        .scan-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 1.1em;
+            margin-bottom: 3px;
+        }
+
+        .scan-details {
+            color: #666;
+            font-size: 0.85em;
+        }
+
+        .scan-time {
+            color: #999;
+            font-size: 0.8em;
+            margin-top: 3px;
+        }
+
+        .scan-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+
+        .scan-status.success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .scan-status.error {
+            background: #f44336;
+            color: white;
+        }
+
+        .scan-status.warning {
+            background: #ff9800;
+            color: white;
+        }
+
+        /* Statistika */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+
+        /* Səs effektləri üçün düymə */
+        .sound-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .loading {
             display: inline-block;
             width: 20px;
             height: 20px;
-            border: 3px solid #ffffff;
+            border: 3px solid #667eea;
             border-top: 3px solid transparent;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin-left: 10px;
-            vertical-align: middle;
         }
 
         @keyframes spin {
@@ -145,376 +276,134 @@
             100% { transform: rotate(360deg); }
         }
 
-        .main-app { display: none; padding-bottom: 20px; }
-        
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 20px;
-            padding: 10px;
-        }
-
-        .header h1 { font-size: 1.6em; margin-bottom: 8px; font-weight: 700; }
-
-        .user-info {
-            background: rgba(255,255,255,0.2);
-            backdrop-filter: blur(10px);
-            padding: 12px 20px;
-            border-radius: 25px;
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 15px;
-            font-size: 0.9em;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .logout-btn {
-            background: #f44336;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 0.85em;
-            font-weight: 600;
-        }
-
-        .info-box {
-            background: #fff3e0;
-            border-left: 4px solid #ff9800;
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            color: #e65100;
-            font-size: 0.9em;
-            line-height: 1.4;
-        }
-
-        .info-box strong { display: block; margin-bottom: 5px; font-size: 1.05em; }
-
-        .refresh-status {
-            background: #e3f2fd;
-            color: #1565c0;
-            padding: 10px 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-size: 0.85em;
-            text-align: center;
-            border-left: 4px solid #1976d2;
-        }
-
-        .section {
-            background: white;
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            margin: 0 5px;
-        }
-
-        .qr-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-top: 15px;
-        }
-
-        .qr-card {
-            background: #f8f9fa;
-            border-radius: 16px;
-            padding: 18px 12px;
-            text-align: center;
-            border: 2px solid #e0e0e0;
-            transition: all 0.2s;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .qr-card:active:not(.used):not(.disabled) {
-            transform: scale(0.95);
-            border-color: #667eea;
-        }
-
-        .qr-card.used {
-            background: #ffebee;
-            border-color: #ef5350;
-            cursor: not-allowed;
-        }
-
-        .qr-card.used .qr-icon { display: none; }
-
-        .qr-card.used::before {
-            content: '✓';
-            font-size: 50px;
-            color: #4caf50;
-            display: block;
-            margin: 10px 0;
-            font-weight: bold;
-        }
-
-        .qr-card.disabled {
-            background: #eceff1;
-            border-color: #b0bec5;
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        .qr-card.disabled .qr-icon {
-            filter: grayscale(100%);
-            opacity: 0.4;
-            font-size: 40px;
-        }
-
-        .qr-card h3 { color: #333; margin-bottom: 6px; font-size: 0.95em; font-weight: 600; }
-        .qr-time { color: #666; font-size: 0.75em; margin-bottom: 10px; }
-        .qr-icon { font-size: 42px; margin: 12px 0; line-height: 1; }
-
-        .qr-status {
-            display: inline-block;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.75em;
-            font-weight: bold;
-        }
-
-        .status-active { background: #4caf50; color: white; }
-        .status-used { background: #f44336; color: white; }
-        .status-disabled { background: #78909c; color: white; }
-
-        .used-info { margin-top: 8px; font-size: 0.7em; color: #666; }
-
-        .qr-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .qr-modal-content {
-            background: white;
-            padding: 30px 20px;
-            border-radius: 20px;
-            text-align: center;
-            width: 100%;
-            max-width: 380px;
-            position: relative;
-            animation: zoomIn 0.2s;
-        }
-
-        @keyframes zoomIn {
-            from { transform: scale(0.9); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-
-        .qr-modal-close {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            font-size: 32px;
-            cursor: pointer;
-            color: #666;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-        }
-
-        .qr-modal h2 { color: #333; margin-bottom: 8px; font-size: 1.4em; }
-        .qr-modal-time { color: #666; margin-bottom: 20px; font-size: 0.95em; }
-
-        .qr-big {
-            width: 250px;
-            height: 250px;
-            margin: 0 auto 20px;
-            padding: 10px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        .qr-big img, .qr-big canvas {
-            max-width: 100%;
-            max-height: 100%;
-            display: block;
-        }
-
-        .qr-data-text {
-            background: #f5f5f5;
-            padding: 10px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 0.75em;
-            color: #333;
-            margin-bottom: 15px;
-            word-break: break-all;
-        }
-
-        .btn-cancel {
-            background: #e0e0e0;
-            color: #333;
-            padding: 14px 30px;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 1em;
-            font-weight: 600;
-            width: 100%;
-        }
-
-        .qr-loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: #667eea;
-            font-size: 14px;
-        }
-
-        @media (min-width: 768px) {
-            body { padding: 20px; }
-            .qr-grid { grid-template-columns: repeat(4, 1fr); gap: 15px; }
-            .qr-card { padding: 25px 15px; }
-            .qr-card h3 { font-size: 1.1em; }
-            .qr-icon { font-size: 50px; }
-            .qr-big { width: 300px; height: 300px; }
+        @media (max-width: 600px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .scan-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+            
+            .scan-icon {
+                margin-right: 0;
+            }
         }
     </style>
 </head>
 <body>
 
-    <!-- LOGIN -->
-    <div class="login-container" id="loginPage">
-        <div class="login-box">
-            <h1>🍽️ GHG Yemək</h1>
-            <p>Elektron talon sistemi</p>
+    <div class="header">
+        <h1>🍽️ GHG Yemək Skaner</h1>
+        <p>QR kodu skan edin - Məlumatlar avtomatik yazılacaq</p>
+    </div>
+
+    <div class="container">
+        <!-- Statistika -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalScans">0</div>
+                <div class="stat-label">Ümumi skan</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="successScans">0</div>
+                <div class="stat-label">Uğurlu</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="errorScans">0</div>
+                <div class="stat-label">Xəta</div>
+            </div>
+        </div>
+
+        <!-- Skaner -->
+        <div class="scanner-section">
+            <div class="scanner-box">
+                <div id="reader"></div>
+            </div>
             
-            <form id="loginForm" onsubmit="handleLogin(event)">
-                <div class="form-group">
-                    <label for="employeeId">İşçi ID *</label>
-                    <input type="text" id="employeeId" placeholder="Məsələn: 100001" required autocomplete="off">
+            <div class="status-bar status-waiting" id="statusBar">
+                <span>⏳</span>
+                <span id="statusText">QR kod gözlənilir...</span>
+            </div>
+        </div>
+
+        <!-- Son skan edilənlər -->
+        <div class="recent-scans">
+            <h2>
+                📋 Son skan edilənlər
+                <span style="font-size: 0.7em; color: #666; font-weight: normal;">(Son 50 ədəd)</span>
+            </h2>
+            <div class="scan-list" id="scanList">
+                <div style="text-align: center; color: #999; padding: 40px;">
+                    Hələ heç bir skan edilməyib
                 </div>
-                
-                <button type="submit" class="btn btn-primary" id="loginBtn">
-                    Daxil Ol
-                </button>
-            </form>
-            
-            <div class="error-message" id="errorMsg"></div>
+            </div>
         </div>
     </div>
 
-    <!-- ƏSAS SƏHİFƏ -->
-    <div class="main-app" id="mainApp">
-        <div class="container">
-            <div class="header">
-                <div class="user-info">
-                    <span>👤 <strong id="displayName"></strong></span>
-                    <span style="opacity: 0.7;">|</span>
-                    <span>🆔 <span id="displayId"></span></span>
-                    <button class="logout-btn" onclick="logout()">Çıxış</button>
-                </div>
-                <h1>🍽️ Yemək Talonlarım</h1>
-            </div>
-
-            <div class="section">
-                <div class="info-box">
-                    <strong>⚠️ Gündə yalnız 1 talon!</strong>
-                    Bir talon skan edildikdə digərləri avtomatik deaktiv olur.
-                </div>
-
-                <div class="refresh-status" id="refreshStatus">
-                    🔄 Son yenilənmə: <span id="lastRefresh">Yoxlanılır...</span>
-                </div>
-
-                <div id="qrContainer" class="qr-grid"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- QR MODAL -->
-    <div class="qr-modal" id="qrModal" onclick="closeModal(event)">
-        <div class="qr-modal-content" onclick="event.stopPropagation()">
-            <span class="qr-modal-close" onclick="closeModal()">&times;</span>
-            <h2 id="modalTitle">Yemək</h2>
-            <p class="qr-modal-time" id="modalTime">Vaxt</p>
-            <div class="qr-big" id="modalQR">
-                <div class="qr-loading">Yüklənir...</div>
-            </div>
-            <div class="qr-data-text" id="qrDataText"></div>
-            <p style="color: #666; font-size: 0.85em; margin-bottom: 15px;">Bu kodu skanerə göstərin</p>
-            
-            <!-- TƏSDİQLƏMƏ DÜYMƏSİ (Test üçün) -->
-            <button class="btn btn-success" id="confirmBtn" onclick="confirmUsage()">
-                ✅ İstifadə Et (Test)
-            </button>
-            
-            <button class="btn-cancel" onclick="closeModal()" style="margin-top: 10px;">Bağla</button>
-        </div>
-    </div>
+    <!-- Səs düyməsi -->
+    <button class="sound-toggle" onclick="toggleSound()" id="soundBtn">
+        🔊
+    </button>
 
     <script>
         // ==========================================
         // KONFİQURASİYA
         // ==========================================
-        // ÖZ WEB APP URL-NİZİ BURAYA YAZIN (SONDA BOŞLUQ OLMASIN!)
-        const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzjdpTTp56I7-JIDjFpb55lw6yU9ptYAPhiXHyvJskYOlWHGO_Oi8P2kl7wq-ttEhRH/exec';
+        const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwQ0X85skb5U5_M_99xoU0F4aWi4aXlhBBHWMLjWiuRZ9XQtYuDC3-dIE1aZBlDE-bG/exec';
         
-        const TICKET_TYPES = [
-            { id: 'breakfast', name: 'Səhər Yeməyi', icon: '🌅', time: '06:00-10:00', code: 'S' },
-            { id: 'lunch', name: 'Günorta Yeməyi', icon: '🌞', time: '12:00-15:00', code: 'G' },
-            { id: 'dinner', name: 'Axşam Yeməyi', icon: '🌙', time: '18:00-21:00', code: 'A' },
-            { id: 'dry', name: 'Quru Talon', icon: '📦', time: 'Hər zaman', code: 'Q' }
-        ];
+        // Skan tarixçəsi
+        let scanHistory = [];
+        let isProcessing = false;
+        let soundEnabled = true;
+        let html5QrCode = null;
 
-        let currentEmployee = null;
-        let currentModalType = null;
-        let ticketsData = {};
-        let refreshInterval = null;
+        // Statistika
+        let stats = {
+            total: 0,
+            success: 0,
+            error: 0
+        };
 
         // ==========================================
-        // QR KOD YARATMA
+        // SƏS EFFEKTlƏRİ
         // ==========================================
-        function generateQRCode(elementId, text, width = 230, height = 230) {
-            const element = document.getElementById(elementId);
-            element.innerHTML = '';
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playBeep(type = 'success') {
+            if (!soundEnabled) return;
             
-            if (typeof QRCode === 'undefined') {
-                element.innerHTML = '<div style="color:red; padding:20px;">❌ QRCode kitabxanası yüklənməyib!</div>';
-                return false;
-            }
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
             
-            try {
-                setTimeout(() => {
-                    element.innerHTML = '';
-                    new QRCode(element, {
-                        text: String(text),
-                        width: width,
-                        height: height,
-                        colorDark: "#000000",
-                        colorLight: "#ffffff",
-                        correctLevel: QRCode.CorrectLevel.H
-                    });
-                }, 100);
-                return true;
-            } catch (e) {
-                element.innerHTML = '<div style="color:red; padding:20px;">❌ QR Kod Xətası</div>';
-                return false;
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            if (type === 'success') {
+                oscillator.frequency.value = 800;
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+            } else if (type === 'error') {
+                oscillator.frequency.value = 200;
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                oscillator.type = 'sawtooth';
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+            } else if (type === 'warning') {
+                oscillator.frequency.value = 500;
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.2);
             }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundBtn').textContent = soundEnabled ? '🔊' : '🔇';
         }
 
         // ==========================================
@@ -522,8 +411,8 @@
         // ==========================================
         function fetchJSONP(url) {
             return new Promise((resolve, reject) => {
-                const callbackName = 'jsonp_callback_' + Date.now();
-                const scriptId = 'jsonp_script_' + Date.now();
+                const callbackName = 'scan_callback_' + Date.now();
+                const scriptId = 'script_' + Date.now();
                 
                 const timeout = setTimeout(() => {
                     cleanup();
@@ -549,7 +438,7 @@
                 script.onerror = () => {
                     clearTimeout(timeout);
                     cleanup();
-                    reject(new Error('Script load error'));
+                    reject(new Error('Script error'));
                 };
                 
                 document.head.appendChild(script);
@@ -557,284 +446,210 @@
         }
 
         // ==========================================
-        // LOGIN
+        // SKAN EMALI
         // ==========================================
-        async function handleLogin(e) {
-            e.preventDefault();
-            const empId = document.getElementById('employeeId').value.trim();
-            const errorMsg = document.getElementById('errorMsg');
-            const loginBtn = document.getElementById('loginBtn');
+        async function processScan(qrData) {
+            if (isProcessing) return;
+            isProcessing = true;
             
-            if (!empId) {
-                showError('❌ ID daxil edin!');
-                return;
-            }
-
-            hideError();
-            loginBtn.disabled = true;
-            loginBtn.innerHTML = 'Yoxlanılır... <span class="loading"></span>';
-
-            try {
-                const data = await fetchJSONP(`${SHEET_API_URL}?action=getEmployeeById&id=${encodeURIComponent(empId)}`);
-                
-                if (data.status === 'success' && data.employee) {
-                    currentEmployee = {
-                        id: empId,
-                        fullName: data.employee.fullName || 'İşçi ' + empId
-                    };
-                    
-                    sessionStorage.setItem('currentEmployee', JSON.stringify(currentEmployee));
-                    enterApp();
-                } else if (data.status === 'not_found') {
-                    showError('❌ İşçi tapılmadı! ID-ni yoxlayın.');
-                } else {
-                    showError('❌ Xəta: ' + (data.message || 'Naməlum xəta'));
-                }
-                
-            } catch (error) {
-                console.error('Xəta:', error);
-                showError('❌ Bağlantı xətası! İnternet yoxlayın.');
-            } finally {
-                loginBtn.disabled = false;
-                loginBtn.innerHTML = 'Daxil Ol';
-            }
-        }
-
-        function showError(message) {
-            const errorMsg = document.getElementById('errorMsg');
-            errorMsg.textContent = message;
-            errorMsg.style.display = 'block';
-        }
-
-        function hideError() {
-            document.getElementById('errorMsg').style.display = 'none';
-        }
-
-        function enterApp() {
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'block';
-            document.getElementById('displayName').textContent = currentEmployee.fullName;
-            document.getElementById('displayId').textContent = currentEmployee.id;
-            
-            startAutoRefresh();
-        }
-
-        function logout() {
-            currentEmployee = null;
-            ticketsData = {};
-            if (refreshInterval) clearInterval(refreshInterval);
-            
-            sessionStorage.removeItem('currentEmployee');
-            
-            document.getElementById('mainApp').style.display = 'none';
-            document.getElementById('loginPage').style.display = 'flex';
-            document.getElementById('loginForm').reset();
-            hideError();
-        }
-
-        // ==========================================
-        // QR SİSTEMİ
-        // ==========================================
-        function checkDailyRefresh() {
-            if (!currentEmployee) return;
-            const today = new Date().toDateString();
-            const lastRefresh = localStorage.getItem(`lastRefresh_${currentEmployee.id}`);
-            
-            if (lastRefresh !== today) {
-                refreshAllTickets();
-                localStorage.setItem(`lastRefresh_${currentEmployee.id}`, today);
-            } else {
-                loadTodayData();
-            }
-            updateRefreshDisplay();
-        }
-
-        function refreshAllTickets() {
-            const today = new Date();
-            const dateStr = today.toISOString().split('T')[0].replace(/-/g, '');
-            
-            TICKET_TYPES.forEach(type => {
-                ticketsData[type.id] = {
-                    used: false,
-                    usedTime: null,
-                    qrCode: `GHG|${currentEmployee.id}|${type.code}|${dateStr}|${Math.floor(1000 + Math.random() * 9000)}`
-                };
-            });
-
-            saveData();
-            generateCards();
-        }
-
-        function loadTodayData() {
-            const saved = localStorage.getItem(`tickets_${currentEmployee.id}`);
-            if (saved) {
-                ticketsData = JSON.parse(saved);
-                generateCards();
-            } else {
-                refreshAllTickets();
-            }
-        }
-
-        function saveData() {
-            localStorage.setItem(`tickets_${currentEmployee.id}`, JSON.stringify(ticketsData));
-        }
-
-        function updateRefreshDisplay() {
-            const lastRefresh = localStorage.getItem(`lastRefresh_${currentEmployee.id}`);
-            document.getElementById('lastRefresh').textContent = lastRefresh ? 
-                new Date(lastRefresh).toLocaleDateString('az-AZ') : 'Bugün';
-        }
-
-        function startAutoRefresh() {
-            checkDailyRefresh();
-            refreshInterval = setInterval(checkDailyRefresh, 60000);
-        }
-
-        // ==========================================
-        // KARTLAR
-        // ==========================================
-        function generateCards() {
-            const container = document.getElementById('qrContainer');
-            container.innerHTML = '';
-            const usedTicket = Object.keys(ticketsData).find(key => ticketsData[key].used);
-
-            TICKET_TYPES.forEach(type => {
-                const ticket = ticketsData[type.id];
-                const isUsed = ticket.used;
-                const isDisabled = usedTicket && usedTicket !== type.id;
-
-                const card = document.createElement('div');
-                card.className = `qr-card ${isUsed ? 'used' : ''} ${isDisabled ? 'disabled' : ''}`;
-                
-                if (!isUsed && !isDisabled) {
-                    card.onclick = () => openModal(type);
-                }
-
-                let statusHtml = '';
-                if (isUsed) {
-                    statusHtml = `<span class="qr-status status-used">İSTİFADƏ EDİLDİ</span><div class="used-info">${ticket.usedTime}</div>`;
-                } else if (isDisabled) {
-                    statusHtml = `<span class="qr-status status-disabled">DEAKTIV</span>`;
-                } else {
-                    statusHtml = `<span class="qr-status status-active">AKTIV</span>`;
-                }
-
-                card.innerHTML = `
-                    <h3>${type.name}</h3>
-                    <p class="qr-time">${type.time}</p>
-                    <div class="qr-icon">${type.icon}</div>
-                    ${statusHtml}
-                `;
-                
-                container.appendChild(card);
-            });
-        }
-
-        // ==========================================
-        // QR MODAL
-        // ==========================================
-        function openModal(type) {
-            if (!ticketsData[type.id] || ticketsData[type.id].used) return;
-            
-            currentModalType = type;
-            const qrData = ticketsData[type.id].qrCode;
-            
-            document.getElementById('modalTitle').textContent = `${type.icon} ${type.name}`;
-            document.getElementById('modalTime').textContent = `⏰ ${type.time}`;
-            document.getElementById('qrDataText').textContent = qrData;
-            document.getElementById('qrModal').style.display = 'flex';
-            
-            // Təsdiqləmə düyməsini göstər/gizlə
-            const confirmBtn = document.getElementById('confirmBtn');
-            if (confirmBtn) {
-                confirmBtn.style.display = 'block';
-                confirmBtn.textContent = `✅ ${type.name} - İstifadə Et`;
-            }
-            
-            generateQRCode('modalQR', qrData, 230, 230);
-        }
-
-        function closeModal(e) {
-            if (!e || e.target.id === 'qrModal' || e.target.className === 'qr-modal-close') {
-                document.getElementById('qrModal').style.display = 'none';
-                currentModalType = null;
-                document.getElementById('modalQR').innerHTML = '<div class="qr-loading">Yüklənir...</div>';
-            }
-        }
-
-        // ==========================================
-        // TALON İSTİFADƏ ETMƏK (Əsas funksiya)
-        // ==========================================
-        async function confirmUsage() {
-            if (!currentModalType || !currentEmployee) {
-                alert('❌ Xəta: Talon məlumatları tapılmadı!');
-                return;
-            }
-            
-            const type = currentModalType;
-            const ticket = ticketsData[type.id];
-            
-            if (!ticket || ticket.used) {
-                alert('❌ Bu talon artıq istifadə edilib!');
-                return;
-            }
-            
-            // Düyməni deaktiv et
-            const confirmBtn = document.getElementById('confirmBtn');
-            if (confirmBtn) {
-                confirmBtn.disabled = true;
-                confirmBtn.innerHTML = '⏳ Göndərilir...';
-            }
+            updateStatus('scanning', '⏳ Göndərilir...');
             
             try {
-                // Serverə göndər
-                const data = await fetchJSONP(
-                    `${SHEET_API_URL}?action=useTicket&empId=${encodeURIComponent(currentEmployee.id)}&ticketType=${encodeURIComponent(type.name)}&talonId=${encodeURIComponent(ticket.qrCode)}`
+                const result = await fetchJSONP(
+                    `${SHEET_API_URL}?action=scanTicket&qrData=${encodeURIComponent(qrData)}`
                 );
                 
-                console.log('Server cavabı:', data);
+                console.log('Server cavabı:', result);
                 
-                if (data.status === 'success') {
-                    // Uğurlu - local yaddaşda qeyd et
-                    ticketsData[type.id].used = true;
-                    ticketsData[type.id].usedTime = new Date().toLocaleString('az-AZ');
-                    saveData();
-                    generateCards();
+                if (result.status === 'success') {
+                    // Uğurlu
+                    playBeep('success');
+                    addToHistory({
+                        success: true,
+                        name: result.data.adSoyad,
+                        id: result.data.empId,
+                        type: result.data.ticketType,
+                        time: new Date().toLocaleString('az-AZ'),
+                        message: 'Təsdiqləndi'
+                    });
+                    stats.success++;
+                    updateStatus('success', `✅ ${result.data.adSoyad} - Təsdiqləndi`);
                     
-                    alert(`✅ Uğurlu!\n\n${data.data.adSoyad}\n${type.name}\n${data.data.tarix} ${data.data.saat}`);
-                    closeModal();
+                } else if (result.status === 'warning') {
+                    // Xəbərdarlıq (artıq istifadə edilib)
+                    playBeep('warning');
+                    addToHistory({
+                        success: false,
+                        name: result.data.adSoyad,
+                        id: result.data.empId,
+                        time: new Date().toLocaleString('az-AZ'),
+                        message: result.message,
+                        warning: true
+                    });
+                    updateStatus('warning', `⚠️ ${result.message}`);
+                    
                 } else {
-                    alert('❌ Xəta: ' + (data.message || 'Naməlum xəta'));
-                    if (confirmBtn) {
-                        confirmBtn.disabled = false;
-                        confirmBtn.innerHTML = `✅ ${type.name} - İstifadə Et`;
-                    }
+                    // Xəta
+                    playBeep('error');
+                    addToHistory({
+                        success: false,
+                        name: 'Xəta',
+                        id: '-',
+                        time: new Date().toLocaleString('az-AZ'),
+                        message: result.message || 'Naməlum xəta'
+                    });
+                    stats.error++;
+                    updateStatus('error', `❌ ${result.message || 'Xəta'}`);
                 }
                 
             } catch (error) {
                 console.error('Xəta:', error);
-                alert('❌ Bağlantı xətası! İnternet yoxlayın.');
-                if (confirmBtn) {
-                    confirmBtn.disabled = false;
-                    confirmBtn.innerHTML = `✅ ${type.name} - İstifadə Et`;
-                }
+                playBeep('error');
+                addToHistory({
+                    success: false,
+                    name: 'Bağlantı xətası',
+                    id: '-',
+                    time: new Date().toLocaleString('az-AZ'),
+                    message: 'Serverə qoşulmadı'
+                });
+                stats.error++;
+                updateStatus('error', '❌ Bağlantı xətası!');
             }
+            
+            stats.total++;
+            updateStats();
+            
+            // 2 saniyə sonra yenidən skan etməyə hazır ol
+            setTimeout(() => {
+                isProcessing = false;
+                updateStatus('waiting', '⏳ QR kod gözlənilir...');
+            }, 2000);
+        }
+
+        // ==========================================
+        // UI YENİLƏMƏLƏRİ
+        // ==========================================
+        function updateStatus(type, text) {
+            const statusBar = document.getElementById('statusBar');
+            const statusText = document.getElementById('statusText');
+            
+            statusBar.className = 'status-bar';
+            statusBar.classList.add('status-' + type);
+            statusText.textContent = text;
+        }
+
+        function updateStats() {
+            document.getElementById('totalScans').textContent = stats.total;
+            document.getElementById('successScans').textContent = stats.success;
+            document.getElementById('errorScans').textContent = stats.error;
+        }
+
+        function addToHistory(scanData) {
+            scanHistory.unshift(scanData);
+            if (scanHistory.length > 50) scanHistory.pop(); // Son 50-ni saxla
+            
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('scanList');
+            
+            if (scanHistory.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: #999; padding: 40px;">Hələ heç bir skan edilməyib</div>';
+                return;
+            }
+            
+            list.innerHTML = scanHistory.map(item => {
+                let icon, iconClass, statusClass, statusText;
+                
+                if (item.success) {
+                    icon = '✓';
+                    iconClass = 'success';
+                    statusClass = 'success';
+                    statusText = 'Uğurlu';
+                } else if (item.warning) {
+                    icon = '⚠';
+                    iconClass = 'warning';
+                    statusClass = 'warning';
+                    statusText = 'Xəbərdarlıq';
+                } else {
+                    icon = '✕';
+                    iconClass = 'error';
+                    statusClass = 'error';
+                    statusText = 'Xəta';
+                }
+                
+                return `
+                    <div class="scan-item">
+                        <div class="scan-icon ${iconClass}">${icon}</div>
+                        <div class="scan-info">
+                            <div class="scan-name">${item.name}</div>
+                            <div class="scan-details">
+                                ID: ${item.id}${item.type ? ' | ' + item.type : ''}
+                            </div>
+                            <div class="scan-time">${item.time}</div>
+                        </div>
+                        <div class="scan-status ${statusClass}">${statusText}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ==========================================
+        // KAMERA BAŞLATMA
+        // ==========================================
+        function startScanner() {
+            html5QrCode = new Html5Qrcode("reader");
+            
+            const config = {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            };
+            
+            html5QrCode.start(
+                { facingMode: "environment" }, // Arxa kamera
+                config,
+                onScanSuccess,
+                onScanFailure
+            ).catch(err => {
+                console.error("Kamera xətası:", err);
+                updateStatus('error', '❌ Kamera açılmadı! İcazə verin.');
+            });
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            // Eyni kodu təkrar emal etməmək üçün yoxla
+            if (isProcessing) return;
+            
+            console.log("Skan edildi:", decodedText);
+            processScan(decodedText);
+        }
+
+        function onScanFailure(error) {
+            // Skan uğursuz olanda (normal halda çox olur, ignore edirik)
+            // console.warn("Skan uğursuz:", error);
         }
 
         // ==========================================
         // BAŞLANĞIC
         // ==========================================
         window.onload = function() {
-            const sessionData = sessionStorage.getItem('currentEmployee');
+            // Kamera başlat
+            startScanner();
             
-            if (sessionData) {
-                try {
-                    currentEmployee = JSON.parse(sessionData);
-                    document.getElementById('employeeId').value = currentEmployee.id;
-                    enterApp();
-                } catch (e) {
-                    console.error('Session xətası:', e);
+            // Səs üçün istifadəçi interaksiyası tələb olunur (bəzi brauzerlər)
+            document.addEventListener('click', () => {
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
                 }
+            }, { once: true });
+        };
+
+        // Səhifə bağlananda kameranı dayandır
+        window.onbeforeunload = function() {
+            if (html5QrCode) {
+                html5QrCode.stop();
             }
         };
     </script>
