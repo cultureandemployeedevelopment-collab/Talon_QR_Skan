@@ -38,11 +38,6 @@
             font-weight: 700;
         }
 
-        .header p {
-            opacity: 0.9;
-            font-size: 0.9em;
-        }
-
         .scanner-section {
             background: white;
             border-radius: 20px;
@@ -78,8 +73,6 @@
             display: block;
             width: 90%;
             max-width: 300px;
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-            transition: transform 0.2s;
         }
 
         .permission-btn:active {
@@ -93,7 +86,6 @@
             border-radius: 12px;
             margin: 15px 0;
             text-align: center;
-            border: 1px solid #ef9a9a;
             font-size: 0.9em;
             line-height: 1.5;
         }
@@ -125,11 +117,6 @@
             font-size: 16px;
         }
 
-        .input-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
         .btn-manual {
             background: #4caf50;
             color: white;
@@ -140,13 +127,12 @@
             cursor: pointer;
         }
 
-        .success-overlay {
+        .success-overlay, .error-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(76, 175, 80, 0.95);
             display: none;
             justify-content: center;
             align-items: center;
@@ -154,19 +140,8 @@
             animation: fadeIn 0.3s ease;
         }
 
-        .error-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(244, 67, 54, 0.95);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-            animation: fadeIn 0.3s ease;
-        }
+        .success-overlay { background: rgba(76, 175, 80, 0.95); }
+        .error-overlay { background: rgba(244, 67, 54, 0.95); }
 
         .overlay-content {
             background: white;
@@ -175,7 +150,6 @@
             text-align: center;
             max-width: 380px;
             width: 90%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
             animation: slideUp 0.4s ease;
         }
 
@@ -208,10 +182,6 @@
             font-size: 16px;
         }
 
-        .detail-row:last-child {
-            margin-bottom: 0;
-        }
-
         .detail-icon {
             font-size: 20px;
             margin-right: 12px;
@@ -219,25 +189,10 @@
             text-align: center;
         }
 
-        .detail-text {
-            flex: 1;
-        }
-
-        .detail-label {
-            color: #666;
-            font-size: 0.85em;
-            display: block;
-        }
-
-        .detail-value {
-            color: #333;
-            font-weight: 600;
-            font-size: 1.1em;
-        }
-
-        .employee-name {
-            color: #667eea;
-        }
+        .detail-text { flex: 1; }
+        .detail-label { color: #666; font-size: 0.85em; display: block; }
+        .detail-value { color: #333; font-weight: 600; font-size: 1.1em; }
+        .employee-name { color: #667eea; font-size: 1.2em; }
 
         .countdown-text {
             font-size: 14px;
@@ -256,7 +211,6 @@
 
         .countdown-progress {
             height: 100%;
-            background: currentColor;
             border-radius: 2px;
             width: 100%;
             transition: width 0.1s linear;
@@ -268,19 +222,8 @@
         }
 
         @keyframes slideUp {
-            from { 
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to { 
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @media (min-width: 768px) {
-            .container { max-width: 600px; margin: 0 auto; }
-            .header h1 { font-size: 2.2em; }
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
@@ -302,11 +245,10 @@
             <div id="errorBox" class="error-box" style="display: none;"></div>
             <div id="reader" style="display: none;"></div>
 
-            <!-- Manual giriş (ehtiyat üçün) -->
             <div class="manual-input" id="manualInput" style="display: none;">
                 <h3>📝 Və ya kodu əl ilə daxil edin</h3>
                 <div class="input-group">
-                    <input type="text" id="manualCode" placeholder="GHG|EMP001|S|20250219|1234" style="font-family: monospace; font-size: 14px;">
+                    <input type="text" id="manualCode" placeholder="GHG|EMP001|S|20250219|1234">
                     <button class="btn-manual" onclick="processManual()">Təsdiqlə</button>
                 </div>
             </div>
@@ -352,7 +294,7 @@
             
             <div class="countdown-text">Yenidən skan üçün gözləyin...</div>
             <div class="countdown-bar">
-                <div class="countdown-progress" id="countdownBar" style="color: #4caf50;"></div>
+                <div class="countdown-progress" id="countdownBar" style="background: #4caf50;"></div>
             </div>
         </div>
     </div>
@@ -366,13 +308,13 @@
                 <div class="detail-row">
                     <span class="detail-icon">⚠️</span>
                     <div class="detail-text">
-                        <span class="detail-value" id="errorText" style="color: #f44336;">Yanlış QR kod</span>
+                        <span class="detail-value" id="errorText" style="color: #f44336;">-</span>
                     </div>
                 </div>
             </div>
             <div class="countdown-text">Yenidən cəhd edin...</div>
             <div class="countdown-bar">
-                <div class="countdown-progress" id="errorCountdownBar" style="color: #f44336;"></div>
+                <div class="countdown-progress" id="errorCountdownBar" style="background: #f44336;"></div>
             </div>
         </div>
     </div>
@@ -381,11 +323,10 @@
     
     <script>
         // ==========================================
-        // KONFİQURASİYA - Yuxarıdakı sistemlə uyğun
+        // KONFİQURASİYA
         // ==========================================
-        const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbza6RHnwojHv0QfJbzF6J7HVh0I9aSRVgW6whtyKw3TbN8oXhoU7xbQru56lczzVIpa/exec';
+        const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzLzI48FVKOIDG_8xfENiL_3LKY2eRMGZfLH8L4xgdTSs3Xx5QfuPIiT-2UvuxJNoVh/exec';
         
-        // Yuxarıdakı sistemlə eyni tip kodları
         const TICKET_TYPES = {
             'S': { name: 'Səhər Yeməyi', emoji: '🌅' },
             'G': { name: 'Günorta Yeməyi', emoji: '🌞' },
@@ -394,7 +335,6 @@
         };
 
         let html5QrcodeScanner = null;
-        let isScanning = false;
         let scanCooldown = false;
 
         // ==========================================
@@ -410,7 +350,6 @@
             errorBox.style.display = 'none';
             
             try {
-                // Kamera icazəsi
                 await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
                 
                 reader.style.display = 'block';
@@ -418,16 +357,7 @@
                 initScanner();
                 
             } catch (err) {
-                console.error('Kamera xətası:', err);
-                showError(`
-                    <strong>Kamera açıla bilmədi!</strong><br>
-                    ${err.message}<br><br>
-                    <small>
-                    • Parametrlərdə kamera icazəsini yoxlayın<br>
-                    • HTTPS bağlantısı olmalıdır<br>
-                    • Aşağıdan kodu əl ilə daxil edə bilərsiniz
-                    </small>
-                `);
+                showError('Kamera açıla bilmədi! ' + err.message);
                 manual.style.display = 'block';
             }
         }
@@ -436,105 +366,83 @@
             try {
                 html5QrcodeScanner = new Html5Qrcode("reader");
                 
-                const config = {
-                    fps: 10,
-                    qrbox: { width: 250, height: 250 },
-                    aspectRatio: 1.0
-                };
-
                 html5QrcodeScanner.start(
                     { facingMode: "environment" },
-                    config,
+                    { fps: 10, qrbox: { width: 250, height: 250 } },
                     onScanSuccess,
                     onScanError
                 );
                 
-                isScanning = true;
-                
             } catch (e) {
-                showError('Skaner başlatma xətası: ' + e.message);
+                showError('Skaner xətası: ' + e.message);
             }
         }
 
-        // ==========================================
-        // QR UĞURLU SKAN
-        // ==========================================
-        function onScanSuccess(decodedText, decodedResult) {
+        function onScanSuccess(decodedText) {
             if (scanCooldown) return;
-            
-            console.log('QR tapıldı:', decodedText);
             scanCooldown = true;
             
-            // Skaneri dayandır
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.pause();
-            }
+            if (html5QrcodeScanner) html5QrcodeScanner.pause();
             
             processQR(decodedText);
         }
 
         function onScanError(errorMessage) {
-            // Normal iş rejimi - səssiz
+            // Normal iş rejimi
         }
 
         // ==========================================
-        // QR EMAL (Yuxarıdakı formatla uyğun)
+        // QR EMAL - ƏSAS FUNKSİYA
         // ==========================================
         async function processQR(qrData) {
             try {
                 // Format: GHG|EMP001|S|20250219|1234
                 const parts = qrData.split('|');
                 
-                if (parts.length < 4) {
-                    throw new Error('Yanlış QR formatı. Gözlənilən: GHG|ID|TIP|TARIX|KOD');
+                if (parts.length < 4 || parts[0] !== 'GHG') {
+                    throw new Error('Yanlış QR formatı');
                 }
 
-                const prefix = parts[0].trim();
                 const empId = parts[1].trim();
                 const typeCode = parts[2].trim();
                 const dateStr = parts[3].trim();
                 
-                // Yoxlama
-                if (prefix !== 'GHG') {
-                    throw new Error('Yanlış sistem kodu: ' + prefix);
-                }
-                
                 if (!TICKET_TYPES[typeCode]) {
-                    throw new Error('Bilinməyən talon tipi: ' + typeCode);
+                    throw new Error('Bilinməyən talon: ' + typeCode);
                 }
 
-                // Tarix yoxlaması (bugün olmalıdır)
+                // Tarix yoxlaması
                 const today = new Date();
                 const todayStr = today.toISOString().split('T')[0].replace(/-/g, '');
                 
                 if (dateStr !== todayStr) {
-                    throw new Error('Köhnə talon! Tarix: ' + dateStr);
+                    throw new Error('Köhnə talon! (' + dateStr + ')');
                 }
 
-                // Əməkdaş adını al
-                let fullName = await fetchEmployeeName(empId);
+                // ==========================================
+                // ƏMƏKDAŞ ADINI SERVERDƏN AL
+                // ==========================================
+                const employeeName = await fetchEmployeeName(empId);
                 
-                // Uğurlu ekran
-                showSuccess(fullName, empId, typeCode);
+                // Ekranda göstər
+                showSuccess(employeeName, empId, typeCode);
                 
                 // Sheets-ə yaz
-                logToSheet({
+                await logToSheet({
                     tarix: today.toLocaleDateString('az-AZ'),
                     saat: today.toLocaleTimeString('az-AZ'),
                     id: empId,
-                    adSoyad: fullName,
+                    adSoyad: employeeName,
                     talonNovu: TICKET_TYPES[typeCode].name,
                     qrData: qrData,
                     status: 'Təsdiqləndi'
                 });
 
             } catch (error) {
-                console.error('Emal xətası:', error);
                 showErrorOverlay(error.message);
             }
         }
 
-        // Manual giriş
         function processManual() {
             const code = document.getElementById('manualCode').value.trim();
             if (code) {
@@ -544,48 +452,65 @@
         }
 
         // ==========================================
-        // ƏMƏKDAŞ ADINI ÇƏKMƏ (Apps Script-dən)
+        // SERVERDƏN AD ÇƏKMƏ - DÜZƏLDİLMİŞ
         // ==========================================
         async function fetchEmployeeName(empId) {
             try {
-                // CORS problemini bypass etmək üçün JSONP tipli çağırış
-                const url = `${SHEET_API_URL}?action=getName&id=${encodeURIComponent(empId)}&callback=handleName`;
+                // CORS problemini bypass etmək üçün
+                const url = SHEET_API_URL + '?action=getName&id=' + encodeURIComponent(empId);
                 
-                // Promise ilə gözlə
-                return new Promise((resolve, reject) => {
-                    // Global callback
-                    window.handleName = function(data) {
-                        if (data && data.name) {
-                            resolve(data.name);
-                        } else {
-                            resolve('Bilinməyən əməkdaş');
-                        }
-                        delete window.handleName;
-                    };
-                    
-                    // Script tag ilə çağır (CORS bypass)
-                    const script = document.createElement('script');
-                    script.src = url;
-                    script.onerror = () => {
-                        resolve('Bilinməyən əməkdaş');
-                        delete window.handleName;
-                    };
-                    
-                    // Timeout
-                    setTimeout(() => {
-                        if (window.handleName) {
-                            resolve('Bilinməyən əməkdaş');
-                            delete window.handleName;
-                        }
-                    }, 3000);
-                    
-                    document.head.appendChild(script);
+                // fetch ilə cəhd et
+                const response = await fetch(url, {
+                    method: 'GET',
+                    redirect: 'follow'
                 });
+                
+                const text = await response.text();
+                
+                // JSONP cavabını parse et (callback({...}))
+                const jsonMatch = text.match(/\{.*\}/);
+                if (jsonMatch) {
+                    const data = JSON.parse(jsonMatch[0]);
+                    if (data.name && data.name !== 'Bilinməyən əməkdaş' && data.name !== 'Bilinməyən' && data.name !== null) {
+                        return data.name;
+                    }
+                }
+                
+                // Əgər alınmazsa, birbaşa Sheets-dən oxu cəhdi (fallback)
+                return await fetchNameDirect(empId);
                 
             } catch (e) {
                 console.error('Ad çəkmə xətası:', e);
-                return 'Bilinməyən əməkdaş';
+                return await fetchNameDirect(empId);
             }
+        }
+
+        // Birbaşa Sheets məlumatını al (Apps Script Web App)
+        async function fetchNameDirect(empId) {
+            try {
+                // Post ilə cəhd et
+                const response = await fetch(SHEET_API_URL, {
+                    method: 'POST',
+                    redirect: 'follow',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'getName',
+                        id: empId
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.name && result.name !== 'Bilinməyən') {
+                    return result.name;
+                }
+                
+            } catch (e) {
+                console.log('Birbaşa çəkmə xətası:', e);
+            }
+            
+            return 'Bilinməyən əməkdaş (' + empId + ')';
         }
 
         // ==========================================
@@ -597,23 +522,22 @@
             
             document.getElementById('dispName').textContent = name;
             document.getElementById('dispId').textContent = id;
-            document.getElementById('dispTicket').textContent = `${ticket.emoji} ${ticket.name}`;
+            document.getElementById('dispTicket').textContent = ticket.emoji + ' ' + ticket.name;
             document.getElementById('dispTime').textContent = now.toLocaleTimeString('az-AZ');
             
             document.getElementById('successOverlay').style.display = 'flex';
-            startCountdown('success');
+            startCountdown('success', 4000);
         }
 
         function showErrorOverlay(message) {
             document.getElementById('errorText').textContent = message;
             document.getElementById('errorOverlay').style.display = 'flex';
-            startCountdown('error');
+            startCountdown('error', 3000);
         }
 
-        function startCountdown(type) {
+        function startCountdown(type, duration) {
             const bar = document.getElementById(type === 'success' ? 'countdownBar' : 'errorCountdownBar');
             const overlay = document.getElementById(type === 'success' ? 'successOverlay' : 'errorOverlay');
-            const duration = type === 'success' ? 4000 : 3000;
             
             let width = 100;
             const interval = 50;
@@ -633,7 +557,7 @@
 
         function resetScanner() {
             scanCooldown = false;
-            if (html5QrcodeScanner && isScanning) {
+            if (html5QrcodeScanner) {
                 html5QrcodeScanner.resume();
             }
         }
@@ -641,25 +565,27 @@
         // ==========================================
         // SHEETS-Ə YAZMA
         // ==========================================
-        function logToSheet(data) {
-            // CORS üçün no-cors rejimi (data göndərilir, cavab yoxlanılmır)
-            fetch(SHEET_API_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data)
-            }).catch(e => console.log('Göndərmə xətası (göz ardı edilir):', e));
+        async function logToSheet(data) {
+            try {
+                await fetch(SHEET_API_URL, {
+                    method: 'POST',
+                    redirect: 'follow',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+            } catch (e) {
+                console.log('Göndərmə xətası:', e);
+            }
         }
 
-        function showError(html) {
+        function showError(msg) {
             const box = document.getElementById('errorBox');
-            box.innerHTML = html;
+            box.innerHTML = '<strong>Xəta!</strong><br>' + msg;
             box.style.display = 'block';
             document.getElementById('startBtn').style.display = 'block';
         }
     </script>
 </body>
 </html>
-
