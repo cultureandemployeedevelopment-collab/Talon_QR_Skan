@@ -56,6 +56,32 @@
             min-height: 300px;
         }
 
+        .permission-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 20px auto;
+            display: block;
+        }
+
+        .permission-btn:hover {
+            background: #764ba2;
+        }
+
+        .error-box {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            border: 1px solid #ef9a9a;
+        }
+
         .success-overlay {
             position: fixed;
             top: 0;
@@ -177,16 +203,6 @@
             }
         }
 
-        .error-message {
-            background: #f44336;
-            color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-            text-align: center;
-            display: none;
-        }
-
         @media (max-width: 600px) {
             .header h1 { font-size: 2em; }
             .success-content { padding: 30px 20px; }
@@ -203,8 +219,14 @@
 
         <div class="scanner-section">
             <h2>📱 Kameranı talona yaxınlaşdırın</h2>
-            <div id="reader"></div>
-            <div id="errorMsg" class="error-message"></div>
+            
+            <!-- İcaza düyməsi -->
+            <button id="startBtn" class="permission-btn" onclick="startScanner()">
+                🎥 Kameranı Başlat
+            </button>
+            
+            <div id="errorBox" class="error-box" style="display: none;"></div>
+            <div id="reader" style="display: none;"></div>
         </div>
     </div>
 
@@ -248,12 +270,10 @@
         </div>
     </div>
 
-    <!-- html5-qrcode kitabxanası -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     
     <script>
-        // ✅ DÜZGÜN URL - boşluqsuz
-        const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwDJb6Al2bIm5GnYUmWgKyim5WvFgNmv4xRhHe2G3YtmpQjrqJwPDQivZCMC6xmYf4K/exec';
+        const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzLzI48FVKOIDG_8xfENiL_3LKY2eRMGZfLH8L4xgdTSs3Xx5QfuPIiT-2UvuxJNoVh/exec';
         
         let html5QrcodeScanner = null;
         let scanActive = true;
@@ -273,43 +293,65 @@
             { id: 'dry', name: 'Quru Talon', emoji: '📦' }
         ];
 
-        // Səhifə yüklənəndə başlat
-        window.addEventListener('DOMContentLoaded', function() {
-            console.log('Səhifə yükləndi, skaner başladılır...');
+        // ✅ İSTİFADƏÇİ KLIK EDƏNDƏ BAŞLAT (icaza üçün vacib)
+        async function startScanner() {
+            const btn = document.getElementById('startBtn');
+            const errorBox = document.getElementById('errorBox');
+            const reader = document.getElementById('reader');
             
-            // Kitabxananın yüklənməsini gözlə
-            if (typeof Html5QrcodeScanner === 'undefined') {
-                setTimeout(initScanner, 1000);
-            } else {
+            btn.style.display = 'none';
+            errorBox.style.display = 'none';
+            
+            try {
+                // Kamera icazəsini yoxla
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                stream.getTracks().forEach(track => track.stop()); // Test üçün bağla
+                
+                // İcaza verilib, skaneri başlat
+                reader.style.display = 'block';
                 initScanner();
+                
+            } catch (err) {
+                console.error('Kamera xətası:', err);
+                errorBox.innerHTML = `
+                    <strong>Kamera açıla bilmədi!</strong><br>
+                    ${err.name}: ${err.message}<br><br>
+                    <small>
+                    • Chrome parametrlərində kamera icazəsini yoxlayın<br>
+                    • Başqa proqram kameranı işlətməsin (Zoom, WhatsApp)<br>
+                    • HTTPS bağlantısı olduğunu yoxlayın
+                    </small>
+                `;
+                errorBox.style.display = 'block';
+                btn.style.display = 'block';
+                btn.textContent = '🔄 Yenidən Cəhd Et';
             }
-        });
+        }
 
         function initScanner() {
             try {
                 if (typeof Html5QrcodeScanner === 'undefined') {
-                    showError('Skaner kitabxanası yüklənmədi. Səhifəni yeniləyin.');
+                    showError('Skaner kitabxanası yüklənmədi');
                     return;
                 }
 
-                console.log('Skaner başladılır...');
-                
                 html5QrcodeScanner = new Html5QrcodeScanner(
                     "reader",
                     { 
                         fps: 10, 
                         qrbox: { width: 250, height: 250 },
-                        aspectRatio: 1.0
+                        aspectRatio: 1.0,
+                        videoConstraints: {
+                            facingMode: "environment" // Arxa kamera (varsa)
+                        }
                     },
                     false
                 );
 
                 html5QrcodeScanner.render(onScanSuccess, onScanError);
-                console.log('Skaner hazır');
                 
             } catch (e) {
-                console.error('Skaner xətası:', e);
-                showError('Skaner başladıla bilmədi: ' + e.message);
+                showError('Skaner başlatma xətası: ' + e.message);
             }
         }
 
@@ -319,11 +361,16 @@
             console.log('QR tapıldı:', decodedText);
             scanActive = false;
             
+            // Skaneri dayandır
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.pause();
+            }
+            
             processScan(decodedText);
         }
 
         function onScanError(errorMessage) {
-            // Normal iş rejimində səssiz qalır
+            // Normal iş rejimi
         }
 
         async function processScan(qrDataString) {
@@ -331,7 +378,7 @@
             
             if (parts.length < 2) {
                 alert('❌ Yanlış QR formatı');
-                scanActive = true;
+                resetScanner();
                 return;
             }
             
@@ -341,7 +388,7 @@
             
             if (!typeId) {
                 alert('❌ Bilinməyən talon: ' + typeCode);
-                scanActive = true;
+                resetScanner();
                 return;
             }
 
@@ -417,9 +464,16 @@
                 if (width <= 0) {
                     clearInterval(timer);
                     hideSuccessScreen();
-                    scanActive = true;
+                    resetScanner();
                 }
             }, interval);
+        }
+
+        function resetScanner() {
+            scanActive = true;
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.resume();
+            }
         }
 
         async function sendToSheet(data) {
@@ -432,16 +486,15 @@
                     },
                     body: JSON.stringify(data)
                 });
-                console.log('Məlumat göndərildi');
             } catch (error) {
                 console.error('Göndərmə xətası:', error);
             }
         }
 
         function showError(msg) {
-            const el = document.getElementById('errorMsg');
-            el.textContent = msg;
-            el.style.display = 'block';
+            const errorBox = document.getElementById('errorBox');
+            errorBox.innerHTML = msg;
+            errorBox.style.display = 'block';
         }
     </script>
 </body>
