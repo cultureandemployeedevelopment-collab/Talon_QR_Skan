@@ -305,7 +305,7 @@
             return audioContext;
         }
 
-        function playTone(frequency, duration, startAt, volume = 0.12) {
+        function playTone(frequency, duration, startAt, volume = 0.22) {
             const ctx = ensureAudioContext();
             if (!ctx) return;
 
@@ -333,16 +333,38 @@
             const now = ctx.currentTime;
 
             if (resultType === 'success') {
-                playTone(880, 0.18, now);
-                playTone(1175, 0.25, now + 0.2);
+                playTone(880, 0.18, now, 0.24);
+                playTone(1175, 0.25, now + 0.2, 0.24);
             } else if (resultType === 'warning') {
-                playTone(520, 0.22, now);
-                playTone(420, 0.28, now + 0.24);
+                playTone(520, 0.22, now, 0.24);
+                playTone(420, 0.28, now + 0.24, 0.24);
             } else {
-                playTone(350, 0.35, now, 0.1);
+                playTone(350, 0.35, now, 0.2);
             }
         }
 
+        // JSONP fetch
+        function fetchJSONP(url) {
+            return new Promise((resolve, reject) => {
+                const cb = 'cb_' + Date.now();
+                const script = document.createElement('script');
+                
+                window[cb] = (data) => {
+                    delete window[cb];
+                    script.remove();
+                    resolve(data);
+                };
+                
+                setTimeout(() => {
+                    delete window[cb];
+                    script.remove();
+                    reject(new Error('Timeout'));
+                }, 10000);
+                
+                script.src = url + '&callback=' + cb;
+                document.head.appendChild(script);
+            });
+        }
         // JSONP fetch
         function fetchJSONP(url) {
             return new Promise((resolve, reject) => {
