@@ -396,7 +396,7 @@
                         name: result.data.adSoyad,
                         id: result.data.empId,
                         type: result.data.ticketType,
-                        statusText: 'Təsdiqləndi'
+                        statusText: result.message || 'Təsdiqləndi'
                     };
                     
                     addScan({
@@ -404,7 +404,7 @@
                         name: result.data.adSoyad,
                         id: result.data.empId,
                         type: result.data.ticketType,
-                        msg: 'Təsdiqləndi'
+                        msg: result.message || 'Təsdiqləndi'
                     });
                     
                     showResult(data);
@@ -415,7 +415,7 @@
                         name: result.data.adSoyad,
                         id: result.data.empId,
                         type: result.data.ticketType,
-                        statusText: 'Artıq istifadə edilib'
+                        statusText: result.message || 'Artıq istifadə edilib'
                     };
                     
                     addScan({
@@ -424,7 +424,7 @@
                         name: result.data.adSoyad,
                         id: result.data.empId,
                         type: result.data.ticketType,
-                        msg: 'Artıq istifadə edilib'
+                        msg: result.message || 'Artıq istifadə edilib'
                     });
                     
                     showResult(data);
