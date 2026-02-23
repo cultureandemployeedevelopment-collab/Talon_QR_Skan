@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>GHG Yemək Skaner</title>
     
-    <!-- Html5Qrcode -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     
     <style>
@@ -24,26 +23,25 @@
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 15px;
+            padding: 20px;
             text-align: center;
         }
 
         .header h1 {
-            font-size: 1.3em;
+            font-size: 1.4em;
         }
 
         .container {
             max-width: 600px;
             margin: 0 auto;
-            padding: 15px;
+            padding: 20px;
         }
 
-        /* Skaner bölməsi */
         .scanner-box {
             background: white;
             border-radius: 20px;
-            padding: 15px;
-            margin-bottom: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
@@ -55,11 +53,10 @@
 
         .status {
             text-align: center;
-            padding: 12px;
-            margin-top: 10px;
+            padding: 15px;
+            margin-top: 15px;
             border-radius: 12px;
             font-weight: 600;
-            font-size: 0.95em;
         }
 
         .status-waiting { background: #fff3e0; color: #e65100; }
@@ -134,7 +131,7 @@
         .detail-row {
             display: flex;
             justify-content: space-between;
-            padding: 10px 0;
+            padding: 12px 0;
             border-bottom: 1px solid #e0e0e0;
         }
 
@@ -142,17 +139,17 @@
 
         .detail-label {
             color: #666;
-            font-size: 0.9em;
+            font-size: 0.95em;
         }
 
         .detail-value {
             color: #333;
-            font-weight: 600;
-            font-size: 0.95em;
+            font-weight: 700;
+            font-size: 1.1em;
         }
 
         .countdown {
-            font-size: 2.5em;
+            font-size: 3em;
             font-weight: 700;
             color: #667eea;
             margin-top: 15px;
@@ -164,7 +161,7 @@
             margin-top: 5px;
         }
 
-        /* Son skanlar siyahısı */
+        /* Son skanlar */
         .last-scan {
             background: white;
             border-radius: 20px;
@@ -257,7 +254,7 @@
             <div class="result-icon" id="resultIcon">✓</div>
             <div class="result-title" id="resultTitle">Təsdiqləndi</div>
             
-            <div class="result-details" id="resultDetails">
+            <div class="result-details">
                 <div class="detail-row">
                     <span class="detail-label">Əməkdaş:</span>
                     <span class="detail-value" id="detailName">-</span>
@@ -282,91 +279,19 @@
     </div>
 
     <script>
-        // WEB APP URL-NİZİ BURAYA YAZIN (BOŞLUQ OLMASIN!)
-        const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbyP2-65xmLFVfVMCb2Z3ZmO3jqE0vJrIecd_NcJXPC0glKkYFS5q8CJhKxHBFr5YB7n/exec';
+        // ==========================================
+        // EMPLOYEES FAYLININ URL-si
+        // ==========================================
+        const SHEET_API_URL = 'https://script.google.com/macros/s/EMPLOYEES_SCRIPT_URL/exec';
         
         let isProcessing = false;
         let scanHistory = [];
         let html5QrCode = null;
         let countdownInterval = null;
-        let audioContext = null;
 
-        function ensureAudioContext() {
-            if (!audioContext) {
-                const Ctx = window.AudioContext || window.webkitAudioContext;
-                if (!Ctx) return null;
-                audioContext = new Ctx();
-            }
-
-            if (audioContext.state === 'suspended') {
-                audioContext.resume().catch(() => {});
-            }
-
-            return audioContext;
-        }
-
-        function playTone(frequency, duration, startAt, volume = 0.22) {
-            const ctx = ensureAudioContext();
-            if (!ctx) return;
-
-            const oscillator = ctx.createOscillator();
-            const gain = ctx.createGain();
-
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(frequency, startAt);
-
-            gain.gain.setValueAtTime(0, startAt);
-            gain.gain.linearRampToValueAtTime(volume, startAt + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
-
-            oscillator.connect(gain);
-            gain.connect(ctx.destination);
-
-            oscillator.start(startAt);
-            oscillator.stop(startAt + duration);
-        }
-
-        function playFeedbackSound(resultType) {
-            const ctx = ensureAudioContext();
-            if (!ctx) return;
-
-            const now = ctx.currentTime;
-
-            if (resultType === 'success') {
-                playTone(880, 0.18, now, 0.24);
-                playTone(1175, 0.25, now + 0.2, 0.24);
-            } else if (resultType === 'warning') {
-                playTone(520, 0.22, now, 0.24);
-                playTone(420, 0.28, now + 0.24, 0.24);
-            } else {
-              playTone(350, 0.5, now, 0.5);
-                playTone(300, 0.45, now + 0.22, 0.5);
-            }
-        }
-
-        // JSONP fetch
-        function fetchJSONP(url) {
-            return new Promise((resolve, reject) => {
-                const cb = 'cb_' + Date.now();
-                const script = document.createElement('script');
-                
-                window[cb] = (data) => {
-                    delete window[cb];
-                    script.remove();
-                    resolve(data);
-                };
-                
-                setTimeout(() => {
-                    delete window[cb];
-                    script.remove();
-                    reject(new Error('Timeout'));
-                }, 10000);
-                
-                script.src = url + '&callback=' + cb;
-                document.head.appendChild(script);
-            });
-        }
-        // JSONP fetch
+        // ==========================================
+        // JSONP
+        // ==========================================
         function fetchJSONP(url) {
             return new Promise((resolve, reject) => {
                 const cb = 'cb_' + Date.now();
@@ -389,21 +314,20 @@
             });
         }
 
-        // 10 saniyəlik nəticə ekranını göstər
+        // ==========================================
+        // 10 SANİYƏLİK NƏTİCƏ EKRANI
+        // ==========================================
         function showResult(data) {
             const overlay = document.getElementById('resultOverlay');
             const card = document.getElementById('resultCard');
             const icon = document.getElementById('resultIcon');
             const title = document.getElementById('resultTitle');
-            const countdownEl = document.getElementById('countdown');
             
-            // Məlumatları doldur
             document.getElementById('detailName').textContent = data.name || '-';
             document.getElementById('detailId').textContent = data.id || '-';
             document.getElementById('detailTicket').textContent = data.type || '-';
             document.getElementById('detailStatus').textContent = data.statusText || '-';
             
-            // Stil təyin et
             card.className = 'result-card result-' + data.resultType;
             
             if (data.resultType === 'success') {
@@ -416,21 +340,17 @@
                 icon.textContent = '✕';
                 title.textContent = 'Xəta';
             }
-
-            playFeedbackSound(data.resultType);
             
-            // Ekranı göstər
             overlay.style.display = 'flex';
             
-            // Geri sayım başlat
             let seconds = 10;
-            countdownEl.textContent = seconds;
+            document.getElementById('countdown').textContent = seconds;
             
             if (countdownInterval) clearInterval(countdownInterval);
             
             countdownInterval = setInterval(() => {
                 seconds--;
-                countdownEl.textContent = seconds;
+                document.getElementById('countdown').textContent = seconds;
                 
                 if (seconds <= 0) {
                     clearInterval(countdownInterval);
@@ -438,7 +358,6 @@
                 }
             }, 1000);
             
-            // Kliklə bağlamaq üçün
             overlay.onclick = function(e) {
                 if (e.target === overlay) {
                     clearInterval(countdownInterval);
@@ -447,14 +366,15 @@
             };
         }
 
-        // Nəticə ekranını gizlət və skanerə qayıt
         function hideResult() {
             document.getElementById('resultOverlay').style.display = 'none';
             isProcessing = false;
             updateStatus('waiting', 'QR kod gözlənilir...');
         }
 
-        // Skan emalı
+        // ==========================================
+        // SKAN EMALI
+        // ==========================================
         async function handleScan(qrData) {
             if (isProcessing) return;
             isProcessing = true;
@@ -466,35 +386,31 @@
                     SHEET_API_URL + '?action=scanTicket&qrData=' + encodeURIComponent(qrData)
                 );
                 
-                console.log('Nəticə:', result);
-                
                 if (result.status === 'success') {
-                    const data = {
+                    showResult({
                         resultType: 'success',
                         name: result.data.adSoyad,
                         id: result.data.empId,
                         type: result.data.ticketType,
-                        statusText: result.message || 'Təsdiqləndi'
-                    };
+                        statusText: 'Təsdiqləndi'
+                    });
                     
                     addScan({
                         ok: true,
                         name: result.data.adSoyad,
                         id: result.data.empId,
                         type: result.data.ticketType,
-                        msg: result.message || 'Təsdiqləndi'
+                        msg: 'Təsdiqləndi'
                     });
                     
-                    showResult(data);
-                    
                 } else if (result.status === 'warning') {
-                    const data = {
+                    showResult({
                         resultType: 'warning',
                         name: result.data.adSoyad,
                         id: result.data.empId,
                         type: result.data.ticketType,
-                        statusText: result.message || 'Artıq istifadə edilib'
-                    };
+                        statusText: 'Artıq istifadə edilib'
+                    });
                     
                     addScan({
                         ok: false,
@@ -502,19 +418,17 @@
                         name: result.data.adSoyad,
                         id: result.data.empId,
                         type: result.data.ticketType,
-                        msg: result.message || 'Artıq istifadə edilib'
+                        msg: 'Artıq istifadə edilib'
                     });
                     
-                    showResult(data);
-                    
                 } else {
-                    const data = {
+                    showResult({
                         resultType: 'error',
                         name: 'Xəta',
                         id: '-',
                         type: '-',
                         statusText: result.message || 'Yanlış QR kod'
-                    };
+                    });
                     
                     addScan({
                         ok: false,
@@ -522,20 +436,16 @@
                         id: '-',
                         msg: result.message || 'Xəta'
                     });
-                    
-                    showResult(data);
                 }
                 
             } catch (e) {
-                console.error(e);
-                
-                const data = {
+                showResult({
                     resultType: 'error',
                     name: 'Bağlantı xətası',
                     id: '-',
                     type: '-',
                     statusText: 'Serverə qoşulmadı'
-                };
+                });
                 
                 addScan({
                     ok: false,
@@ -543,8 +453,6 @@
                     id: '-',
                     msg: 'Serverə qoşulmadı'
                 });
-                
-                showResult(data);
             }
         }
 
@@ -579,7 +487,9 @@
             }).join('');
         }
 
-        // Kamera başlat
+        // ==========================================
+        // KAMERA BAŞLAT
+        // ==========================================
         function startCamera() {
             html5QrCode = new Html5Qrcode("reader");
             
