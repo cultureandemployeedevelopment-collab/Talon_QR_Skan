@@ -92,7 +92,9 @@
   </div>
 
   <script>
-    const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbxtHn5BnqLDYJj3HYe_0LZEQtX5B5AjLUUapjUmlj3jn1sCGsZmAIW817qfr9lQlh-i/exec'; // <-- /exec link
+    const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbxtHn5BnqLDYJj3HYe_0LZEQtX5B5AjLUUapjUmlj3jn1sCGsZmAIW817qfr9lQlh-i/exec';
+
+    const COUNTDOWN_SECONDS = 5; // ✅ burdan idarə et
 
     let isProcessing = false;
     let scanHistory = [];
@@ -154,26 +156,35 @@
     }
 
     function startCountdown(){
+      // ✅ köhnə interval qalmasın
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
+
       const countdownEl = document.getElementById('countdown');
       const countdownText = document.getElementById('countdownText');
       countdownEl.style.display = 'block';
       countdownText.style.display = 'block';
 
-      let seconds = 5;
+      let seconds = COUNTDOWN_SECONDS;
       countdownEl.textContent = seconds;
 
-      if (countdownInterval) clearInterval(countdownInterval);
       countdownInterval = setInterval(()=>{
         seconds--;
         countdownEl.textContent = seconds;
         if (seconds <= 0){
           clearInterval(countdownInterval);
+          countdownInterval = null;
           hideResult();
         }
       },1000);
     }
 
     function showResult({resultType, name, id, type, statusText, confirmToken}){
+      // ✅ overlay açılan kimi countdown text-i həmişə 5 et
+      document.getElementById('countdown').textContent = COUNTDOWN_SECONDS;
+
       const overlay = document.getElementById('resultOverlay');
       const card = document.getElementById('resultCard');
       const icon = document.getElementById('resultIcon');
@@ -202,6 +213,8 @@
         confirmBtn.style.display='block';
         document.getElementById('countdown').style.display='none';
         document.getElementById('countdownText').style.display='none';
+        // confirm modunda interval işləməsin
+        if (countdownInterval){ clearInterval(countdownInterval); countdownInterval = null; }
       } else {
         icon.textContent='✕'; title.textContent='Xəta';
         confirmBtn.style.display='none';
@@ -256,8 +269,6 @@
       if (!pendingConfirmToken) return;
       try{
         const res = await fetchJSONP(`${SHEET_API_URL}?action=confirmDrySecond&token=${encodeURIComponent(pendingConfirmToken)}`);
-
-        // bu endpoint səndə “Təkrar cəhd” qaytarır
         addScan({name: res.data?.adSoyad || '-', id: res.data?.empId || '-', type: res.data?.ticketType || '-', msg: res.message || 'Təkrar cəhd', warn:true, err:false});
         showResult({resultType:'warning', name:res.data?.adSoyad || '-', id:res.data?.empId || '-', type:res.data?.ticketType || '-', statusText:res.message || 'Təkrar cəhd'});
       }catch(e){
@@ -266,7 +277,7 @@
     };
 
     document.getElementById('closeBtn').onclick = () => {
-      if (countdownInterval) clearInterval(countdownInterval);
+      if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
       hideResult();
     };
 
