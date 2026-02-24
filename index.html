@@ -94,15 +94,14 @@
   <script>
     const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbxtHn5BnqLDYJj3HYe_0LZEQtX5B5AjLUUapjUmlj3jn1sCGsZmAIW817qfr9lQlh-i/exec';
 
-    const COUNTDOWN_SECONDS = 5; // ✅ burdan idarə et
+    // ✅ TƏK mənbə: neçə saniyəyə geri qayıtsın
+    const COUNTDOWN_SECONDS = 5;
 
     let isProcessing = false;
     let scanHistory = [];
     let html5QrCode = null;
     let countdownInterval = null;
     let pendingConfirmToken = null;
-
-    const SCAN_RETURN_SECONDS = 5;
 
     function fetchJSONP(url) {
       return new Promise((resolve, reject) => {
@@ -158,7 +157,7 @@
     }
 
     function startCountdown(){
-      // ✅ köhnə interval qalmasın
+      // əvvəlki interval varsa dayandır
       if (countdownInterval) {
         clearInterval(countdownInterval);
         countdownInterval = null;
@@ -166,14 +165,11 @@
 
       const countdownEl = document.getElementById('countdown');
       const countdownText = document.getElementById('countdownText');
+
       countdownEl.style.display = 'block';
       countdownText.style.display = 'block';
 
- codex/skan-et-5-saniy
-      let seconds = SCAN_RETURN_SECONDS;
-
       let seconds = COUNTDOWN_SECONDS;
- main
       countdownEl.textContent = seconds;
 
       countdownInterval = setInterval(()=>{
@@ -184,11 +180,11 @@
           countdownInterval = null;
           hideResult();
         }
-      },1000);
+      }, 1000);
     }
 
     function showResult({resultType, name, id, type, statusText, confirmToken}){
-      // ✅ overlay açılan kimi countdown text-i həmişə 5 et
+      // overlay açılan kimi 5 göstərsin
       document.getElementById('countdown').textContent = COUNTDOWN_SECONDS;
 
       const overlay = document.getElementById('resultOverlay');
@@ -207,6 +203,7 @@
       const closeBtn = document.getElementById('closeBtn');
       pendingConfirmToken = confirmToken || null;
 
+      // default: close aktiv
       closeBtn.disabled = false;
       closeBtn.style.opacity = '1';
       closeBtn.style.cursor = 'pointer';
@@ -228,12 +225,10 @@
       } else if (resultType === 'confirm'){
         icon.textContent='?'; title.textContent='Təsdiq';
         confirmBtn.style.display='block';
-        closeBtn.disabled = false;
-        closeBtn.style.opacity = '1';
-        closeBtn.style.cursor = 'pointer';
+
+        // confirm modunda countdown görünməsin və interval dayanmış olsun
         document.getElementById('countdown').style.display='none';
         document.getElementById('countdownText').style.display='none';
-        // confirm modunda interval işləməsin
         if (countdownInterval){ clearInterval(countdownInterval); countdownInterval = null; }
       } else {
         icon.textContent='✕'; title.textContent='Xəta';
@@ -251,10 +246,16 @@
       document.getElementById('resultOverlay').style.display='none';
       isProcessing = false;
       pendingConfirmToken = null;
+
       const closeBtn = document.getElementById('closeBtn');
       closeBtn.disabled = false;
       closeBtn.style.opacity = '1';
       closeBtn.style.cursor = 'pointer';
+
+      // countdown sahəsini default gizlət
+      document.getElementById('countdown').style.display='none';
+      document.getElementById('countdownText').style.display='none';
+
       updateStatus('waiting','QR kod gözlənilir...');
     }
 
@@ -304,13 +305,13 @@
     };
 
     document.getElementById('closeBtn').onclick = () => {
- codex/skan-et-5-saniy
       const closeBtn = document.getElementById('closeBtn');
       if (closeBtn.disabled) return;
-      if (countdownInterval) clearInterval(countdownInterval);
 
-      if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
- main
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+      }
       hideResult();
     };
 
