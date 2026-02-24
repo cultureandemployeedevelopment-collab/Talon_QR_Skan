@@ -43,6 +43,21 @@ function sendJSONP_(data, callback) {
 }
 
 function openByIdSafe_(id, label) {
+ codex/fix-issue-in-handlescanticket_-function-k8i65m
+  try {
+    return SpreadsheetApp.openById(id);
+  } catch (openByIdErr) {
+    try {
+      // Bəzi mühitlərdə openById method/property əlçatan olmur; Drive faylı ilə açırıq.
+      const file = DriveApp.getFileById(id);
+      return SpreadsheetApp.open(file);
+    } catch (fallbackErr) {
+      throw new Error(`${label} açılmadı. ID/Access problemi. ID=${id} | openById=${openByIdErr} | fallback=${fallbackErr}`);
+    }
+  }
+}
+
+
   const hasOpenById = SpreadsheetApp && typeof SpreadsheetApp.openById === 'function';
   try {
     if (hasOpenById) {
@@ -57,6 +72,7 @@ function openByIdSafe_(id, label) {
   }
 }
 
+main
 function tzNow_() {
   return new Date();
 }
@@ -109,6 +125,7 @@ function ticketName_(code) {
     Q: 'Quru Talon'
   })[code] || 'Naməlum';
 }
+ codex/fix-issue-in-handlescanticket_-function-k8i65m
 
 function handleLogin_(e) {
   const id = (e.parameter.id || '').toString().trim();
@@ -134,6 +151,33 @@ function handleLogin_(e) {
     const rowPass = String(data[i][passCol] || '').trim();
     const rowName = String(data[i][nameCol] || '').trim();
 
+
+
+function handleLogin_(e) {
+  const id = (e.parameter.id || '').toString().trim();
+  const pass = (e.parameter.pass || '').toString().trim();
+  if (!id || !pass) return { status: 'error', message: 'ID və parol tələb olunur' };
+
+  const empSS = openByIdSafe_(EMPLOYEES_FILE_ID, 'EMPLOYEES_FILE');
+  const sh = empSS.getSheetByName(EMP_SHEET_NAME) || empSS.getSheets()[0];
+
+  const data = sh.getDataRange().getValues();
+  if (data.length < 2) return { status: 'not_found' };
+
+  const headers = data[0].map((x) => String(x || '').trim().toLowerCase());
+  const idCol = headers.findIndex((h) => h === 'id' || h === 'i̇d' || h.includes('id'));
+  const passCol = headers.findIndex((h) => h === 'parol' || h.includes('parol'));
+  const nameHeaderIndex = headers.findIndex((h) => h.includes('ad') && h.includes('soyad'));
+  const nameCol = nameHeaderIndex >= 0 ? nameHeaderIndex : 2;
+
+  if (idCol < 0 || passCol < 0) return { status: 'error', message: 'Employees sütunları tapılmadı (ID/Parol)' };
+
+  for (let i = 1; i < data.length; i++) {
+    const rowId = String(data[i][idCol] || '').trim();
+    const rowPass = String(data[i][passCol] || '').trim();
+    const rowName = String(data[i][nameCol] || '').trim();
+
+ main
     if (rowId === id) {
       if (rowPass !== pass) return { status: 'invalid_pass' };
       return { status: 'success', employee: { id, fullName: rowName } };
