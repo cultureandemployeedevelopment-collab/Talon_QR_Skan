@@ -94,14 +94,20 @@
   <script>
     const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbxtHn5BnqLDYJj3HYe_0LZEQtX5B5AjLUUapjUmlj3jn1sCGsZmAIW817qfr9lQlh-i/exec';
 
-    // ✅ TƏK mənbə: neçə saniyəyə geri qayıtsın
     const COUNTDOWN_SECONDS = 5;
+
+    // ✅ SÜRƏT üçün: eyni QR-ni 1-2 saniyə içində təkrar göndərməsin
+    const LAST_QR_COOLDOWN_MS = 1200;
 
     let isProcessing = false;
     let scanHistory = [];
     let html5QrCode = null;
     let countdownInterval = null;
     let pendingConfirmToken = null;
+
+    // dedup
+    let lastQrText = '';
+    let lastQrAt = 0;
 
     function fetchJSONP(url) {
       return new Promise((resolve, reject) => {
@@ -157,11 +163,7 @@
     }
 
     function startCountdown(){
-      // əvvəlki interval varsa dayandır
-      if (countdownInterval) {
-        clearInterval(countdownInterval);
-        countdownInterval = null;
-      }
+      if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
 
       const countdownEl = document.getElementById('countdown');
       const countdownText = document.getElementById('countdownText');
@@ -184,7 +186,6 @@
     }
 
     function showResult({resultType, name, id, type, statusText, confirmToken}){
-      // overlay açılan kimi 5 göstərsin
       document.getElementById('countdown').textContent = COUNTDOWN_SECONDS;
 
       const overlay = document.getElementById('resultOverlay');
@@ -203,7 +204,6 @@
       const closeBtn = document.getElementById('closeBtn');
       pendingConfirmToken = confirmToken || null;
 
-      // default: close aktiv
       closeBtn.disabled = false;
       closeBtn.style.opacity = '1';
       closeBtn.style.cursor = 'pointer';
@@ -211,31 +211,23 @@
       if (resultType === 'success'){
         icon.textContent='✓'; title.textContent='Təsdiqləndi';
         confirmBtn.style.display='none';
-        closeBtn.disabled = true;
-        closeBtn.style.opacity = '.6';
-        closeBtn.style.cursor = 'not-allowed';
+        closeBtn.disabled = true; closeBtn.style.opacity = '.6'; closeBtn.style.cursor = 'not-allowed';
         startCountdown();
       } else if (resultType === 'warning'){
         icon.textContent='⚠'; title.textContent='Xəbərdarlıq';
         confirmBtn.style.display='none';
-        closeBtn.disabled = true;
-        closeBtn.style.opacity = '.6';
-        closeBtn.style.cursor = 'not-allowed';
+        closeBtn.disabled = true; closeBtn.style.opacity = '.6'; closeBtn.style.cursor = 'not-allowed';
         startCountdown();
       } else if (resultType === 'confirm'){
         icon.textContent='?'; title.textContent='Təsdiq';
         confirmBtn.style.display='block';
-
-        // confirm modunda countdown görünməsin və interval dayanmış olsun
         document.getElementById('countdown').style.display='none';
         document.getElementById('countdownText').style.display='none';
         if (countdownInterval){ clearInterval(countdownInterval); countdownInterval = null; }
       } else {
         icon.textContent='✕'; title.textContent='Xəta';
         confirmBtn.style.display='none';
-        closeBtn.disabled = true;
-        closeBtn.style.opacity = '.6';
-        closeBtn.style.cursor = 'not-allowed';
+        closeBtn.disabled = true; closeBtn.style.opacity = '.6'; closeBtn.style.cursor = 'not-allowed';
         startCountdown();
       }
 
@@ -244,7 +236,6 @@
 
     function hideResult(){
       document.getElementById('resultOverlay').style.display='none';
-      isProcessing = false;
       pendingConfirmToken = null;
 
       const closeBtn = document.getElementById('closeBtn');
@@ -252,14 +243,24 @@
       closeBtn.style.opacity = '1';
       closeBtn.style.cursor = 'pointer';
 
-      // countdown sahəsini default gizlət
       document.getElementById('countdown').style.display='none';
       document.getElementById('countdownText').style.display='none';
 
+      // ✅ tez qayıt
+      isProcessing = false;
       updateStatus('waiting','QR kod gözlənilir...');
     }
 
+    function shouldDropDuplicate(qrText){
+      const now = Date.now();
+      if (qrText === lastQrText && (now - lastQrAt) < LAST_QR_COOLDOWN_MS) return true;
+      lastQrText = qrText;
+      lastQrAt = now;
+      return false;
+    }
+
     async function handleScan(qrData){
+      if (shouldDropDuplicate(qrData)) return;   // ✅ eyni QR spamını kəs
       if (isProcessing) return;
       isProcessing = true;
       updateStatus('scanning','Yoxlanılır...');
@@ -296,6 +297,7 @@
     document.getElementById('confirmBtn').onclick = async () => {
       if (!pendingConfirmToken) return;
       try{
+        // confirm zamanı scan lock qalır
         const res = await fetchJSONP(`${SHEET_API_URL}?action=confirmDrySecond&token=${encodeURIComponent(pendingConfirmToken)}`);
         addScan({name: res.data?.adSoyad || '-', id: res.data?.empId || '-', type: res.data?.ticketType || '-', msg: res.message || 'Təkrar cəhd', warn:true, err:false});
         showResult({resultType:'warning', name:res.data?.adSoyad || '-', id:res.data?.empId || '-', type:res.data?.ticketType || '-', statusText:res.message || 'Təkrar cəhd'});
@@ -307,11 +309,7 @@
     document.getElementById('closeBtn').onclick = () => {
       const closeBtn = document.getElementById('closeBtn');
       if (closeBtn.disabled) return;
-
-      if (countdownInterval) {
-        clearInterval(countdownInterval);
-        countdownInterval = null;
-      }
+      if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
       hideResult();
     };
 
@@ -319,7 +317,12 @@
       html5QrCode = new Html5Qrcode("reader");
       html5QrCode.start(
         { facingMode:"environment" },
-        { fps:10, qrbox:{ width:250, height:250 } },
+        {
+          fps: 18,                         // ✅ daha tez oxu
+          qrbox: { width: 280, height: 280 }, // ✅ daha rahat tutma
+          aspectRatio: 1.7777778,          // ✅ stabil preview
+          disableFlip: true               // ✅ lazımsız çevirmə yox
+        },
         (text)=>{ if (!isProcessing) handleScan(text); },
         ()=>{}
       ).catch(err=>{
@@ -329,7 +332,10 @@
     }
 
     window.onload = startCamera;
-    window.onbeforeunload = ()=>{ if (html5QrCode) html5QrCode.stop(); if (countdownInterval) clearInterval(countdownInterval); };
+    window.onbeforeunload = ()=>{
+      try{ if (html5QrCode) html5QrCode.stop(); }catch(e){}
+      if (countdownInterval) clearInterval(countdownInterval);
+    };
   </script>
 </body>
 </html>
