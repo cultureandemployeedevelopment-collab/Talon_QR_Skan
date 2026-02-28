@@ -41,15 +41,7 @@
     .countdown-text{color:#999;font-size:.9em;margin-top:5px}
 
     .last-scan{background:#fff;border-radius:20px;padding:20px;box-shadow:0 4px 15px rgba(0,0,0,.1)}
-    .last-scan h2{font-size:1.1em;color:#333;margin-bottom:12px}
-
-    .search-wrap{display:flex;gap:10px;margin-bottom:12px}
-    .search-input{
-      flex:1;border:1px solid #e5e7eb;background:#fafafa;border-radius:14px;
-      padding:12px 14px;font-weight:700;outline:none;font-size:14px;
-    }
-    .search-input:focus{border-color:#667eea;background:#fff}
-
+    .last-scan h2{font-size:1.1em;color:#333;margin-bottom:15px}
     .scan-item{display:flex;align-items:center;padding:12px;border-bottom:1px solid #eee}
     .scan-item:last-child{border-bottom:none}
     .scan-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;margin-right:12px;flex-shrink:0}
@@ -57,7 +49,7 @@
     .scan-icon.warn{background:#fff3e0;color:#ff9800}
     .scan-icon.err{background:#ffebee;color:#f44336}
     .scan-info{flex:1;min-width:0}
-    .scan-name{font-weight:800;color:#333;font-size:.95em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .scan-name{font-weight:700;color:#333;font-size:.95em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .scan-detail{color:#666;font-size:.8em;margin-top:2px}
     .scan-time{color:#999;font-size:.75em;margin-top:2px}
   </style>
@@ -71,12 +63,9 @@
       <div class="status status-waiting" id="status">QR kod gözlənilir...</div>
     </div>
 
-    <!-- ✅ LIST ONLY HERE -->
     <div class="last-scan">
-      <h2>📋 Son skan edilənlər (bu gün)</h2>
-      <div class="search-wrap">
-        <input id="searchInput" class="search-input" placeholder="Ad / ID ilə axtar..." autocomplete="off" />
-      </div>
+      <!-- ✅ dəyişdi -->
+      <h2>📋 Bu gün skan edilənlər</h2>
       <div id="scanList">
         <div style="text-align:center;color:#999;padding:20px;">Yüklənir...</div>
       </div>
@@ -104,15 +93,13 @@
   </div>
 
   <script>
-    // ✅ Burada mütləq EYNİ Apps Script WebApp /exec olmalıdır
-    const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbyWKYBqLkRCSzGCFDvex5ThzWYCqS29eFb2ZuD8PZqri9OsYNfCEB6rWyaT_lcJg3Gc/exec';
+    const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzurmREY0M8WXoc1KJSKueLK48e_6gF7Z3drm2a9iFT4F7BNNb2QWXMXlYKHWjxjCYx/exec';
 
     const COUNTDOWN_SECONDS = 5;
     const LAST_QR_COOLDOWN_MS = 900;
     const DRY_TTL_MS = 24 * 60 * 60 * 1000;
 
     let isProcessing = false;
-    let scanHistory = [];
     let html5QrCode = null;
     let countdownInterval = null;
 
@@ -123,24 +110,54 @@
     let lastQrText = '';
     let lastQrAt = 0;
 
-    const dryCountMap = new Map(); // qrData -> {count, ts}
+    const dryCountMap = new Map();
 
-    function isDryQR(qrData){
-      const parts = String(qrData || '').split('|');
-      const code = parts[2];
-      const last = parts[5];
-      return code === 'Q' || last === 'dry' || String(qrData).includes('|Q|') || String(qrData).includes('|dry');
+    /* ===== ✅ NEW: Sheet-dən bu gün skan edilənlər ===== */
+    const TODAY_REFRESH_MS = 15000; // 15 saniyə
+    let todayTimer = null;
+
+    function escapeHtml_(s){
+      return String(s ?? '')
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;')
+        .replaceAll("'","&#039;");
     }
 
-    function getDryCount(qrData){
-      const row = dryCountMap.get(qrData);
-      if (!row) return 0;
-      if (Date.now() - row.ts > DRY_TTL_MS){ dryCountMap.delete(qrData); return 0; }
-      return row.count || 0;
+    function normStatus_(s){
+      const t = String(s||'').toLowerCase();
+      if (t.includes('təkrar')) return {cls:'warn', icon:'⚠', text: s || 'Təkrar cəhd'};
+      if (t.includes('xəta') || t.includes('error')) return {cls:'err', icon:'✕', text: s || 'Xəta'};
+      // default: təsdiq
+      return {cls:'ok', icon:'✓', text: s || 'Təsdiq'};
     }
-    function setDryCount(qrData, count){
-      if (!qrData) return;
-      dryCountMap.set(qrData, {count, ts: Date.now()});
+
+    function renderTodayList(items){
+      const list = document.getElementById('scanList');
+
+      if (!items || !items.length){
+        list.innerHTML = `<div style="text-align:center;color:#999;padding:20px;">Hələ heç bir skan edilməyib</div>`;
+        return;
+      }
+
+      list.innerHTML = items.map(it=>{
+        const name = it.adSoyad || '-';           // Ad Soyad Ata adı
+        const type = it.ticketType || '-';       // Yeməyin növü
+        const st = normStatus_(it.statusText);   // Təsdiq / Təkrar cəhd
+        const time = it.time || '';              // Saat (string kimi)
+
+        return `
+          <div class="scan-item">
+            <div class="scan-icon ${st.cls}">${st.icon}</div>
+            <div class="scan-info">
+              <div class="scan-name">${escapeHtml_(name)}</div>
+              <div class="scan-detail">${escapeHtml_(type)} | ${escapeHtml_(st.text)}</div>
+              <div class="scan-time">${time ? ('Saat ' + escapeHtml_(time)) : ''}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     function fetchJSONP(url, {timeoutMs=12000, retry=1} = {}) {
@@ -183,89 +200,49 @@
       });
     }
 
+    async function loadTodayScans(){
+      try{
+        const res = await fetchJSONP(`${SHEET_API_URL}?action=getTodayScans&limit=50`, {timeoutMs:12000, retry:1});
+        if (!res || res.status !== 'success') throw new Error(res?.message || 'getTodayScans error');
+
+        const items = Array.isArray(res.items) ? res.items : [];
+        renderTodayList(items);
+      }catch(e){
+        // səssizcə saxla, UI pozulmasın
+        const list = document.getElementById('scanList');
+        if (list) list.innerHTML = `<div style="text-align:center;color:#999;padding:20px;">Yüklənmədi</div>`;
+      }
+    }
+
+    function startTodayPolling(){
+      if (todayTimer) clearInterval(todayTimer);
+      loadTodayScans();
+      todayTimer = setInterval(loadTodayScans, TODAY_REFRESH_MS);
+    }
+    /* ===== /NEW ===== */
+
+    function isDryQR(qrData){
+      const parts = String(qrData || '').split('|');
+      const code = parts[2];
+      const last = parts[5];
+      return code === 'Q' || last === 'dry' || String(qrData).includes('|Q|') || String(qrData).includes('|dry');
+    }
+
+    function getDryCount(qrData){
+      const row = dryCountMap.get(qrData);
+      if (!row) return 0;
+      if (Date.now() - row.ts > DRY_TTL_MS){ dryCountMap.delete(qrData); return 0; }
+      return row.count || 0;
+    }
+    function setDryCount(qrData, count){
+      if (!qrData) return;
+      dryCountMap.set(qrData, {count, ts: Date.now()});
+    }
+
     function updateStatus(type, text){
       const s = document.getElementById('status');
       s.className = 'status status-' + type;
       s.textContent = text;
-    }
-
-    function escapeHtml_(s){
-      return String(s ?? '')
-        .replaceAll('&','&amp;')
-        .replaceAll('<','&lt;')
-        .replaceAll('>','&gt;')
-        .replaceAll('"','&quot;')
-        .replaceAll("'","&#039;");
-    }
-
-    function renderScanList(){
-      const list = document.getElementById('scanList');
-      const q = String(document.getElementById('searchInput').value || '').trim().toLowerCase();
-
-      const filtered = scanHistory.filter(scan => {
-        if (!q) return true;
-        const name = String(scan.name || '').toLowerCase();
-        const id = String(scan.id || '').toLowerCase();
-        return name.includes(q) || id.includes(q);
-      });
-
-      if (!filtered.length){
-        list.innerHTML = `<div style="text-align:center;color:#999;padding:20px;">Heç nə tapılmadı</div>`;
-        return;
-      }
-
-      list.innerHTML = filtered.map(scan=>{
-        let icon='✓', cls='ok';
-        if (scan.err) { icon='✕'; cls='err'; }
-        else if (scan.warn) { icon='⚠'; cls='warn'; }
-
-        return `
-          <div class="scan-item">
-            <div class="scan-icon ${cls}">${icon}</div>
-            <div class="scan-info">
-              <div class="scan-name">${escapeHtml_(scan.name)}</div>
-              <div class="scan-detail">${escapeHtml_(scan.id)} ${scan.type ? '| ' + escapeHtml_(scan.type) : ''} | ${escapeHtml_(scan.msg)}</div>
-              <div class="scan-time">${escapeHtml_(scan.time)}</div>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function setTodayScansFromServerItems(items){
-      scanHistory = (Array.isArray(items) ? items : []).map(it => {
-        const name = it.adSoyad || '-';
-        const id = it.empId || '-';
-        const type = it.ticketType || '-';
-        const msg = it.statusText || '-';
-        const time = it.time ? ('Saat ' + String(it.time)) : '';
-        const stLower = String(msg).toLowerCase();
-        const err = stLower.includes('xəta') || stLower.includes('error');
-        const warn = stLower.includes('təkrar') || stLower.includes('xəbərdarlıq') || stLower.includes('confirm') || stLower.includes('təsdiq tələb');
-        return { name, id, type, msg, time, err, warn: (!err && warn) };
-      });
-
-      renderScanList();
-    }
-
-    async function loadTodayScans(){
-      try{
-        const res = await fetchJSONP(`${SHEET_API_URL}?action=getTodayScans&limit=200`, { timeoutMs: 12000, retry: 1 });
-        if (!res || res.status !== 'success') throw new Error(res?.message || 'getTodayScans error');
-        setTodayScansFromServerItems(res.items || []);
-      }catch(e){
-        const list = document.getElementById('scanList');
-        list.innerHTML = `<div style="text-align:center;color:#999;padding:20px;">Bu günün skanları yüklənmədi</div>`;
-      }
-    }
-
-    function addLocalScanToTop({name, id, type, msg, level}){
-      const time = 'Saat ' + new Date().toLocaleTimeString('az-AZ');
-      const err = level === 'error';
-      const warn = level === 'warning' || level === 'confirm';
-      scanHistory.unshift({ name, id, type, msg, time, err, warn });
-      if (scanHistory.length > 200) scanHistory.pop();
-      renderScanList();
     }
 
     function startCountdown(){
@@ -332,7 +309,7 @@
         closeBtn.disabled = true; closeBtn.style.opacity = '.6'; closeBtn.style.cursor = 'not-allowed';
         if (mode === 'auto') startCountdown();
       } else if (resultType === 'confirm'){
-        icon.textContent='?'; title.textContent='Təsdiq tələb olunur';
+        icon.textContent='?'; title.textContent='Təsdiqləndi';
         if (mode === 'confirm') confirmBtn.style.display = 'block';
       } else {
         icon.textContent='✕'; title.textContent='Xəta';
@@ -389,21 +366,25 @@
 
           if (c >= 2){
             updateStatus('warning','Təkrar cəhd');
-            addLocalScanToTop({name, id, type:'Quru Talon', msg:'Təkrar cəhd', level:'warning'});
             showResult({resultType:'warning', name, id, type:'Quru Talon', statusText:'Təkrar cəhd', mode:'auto'});
+            // ✅ scan oldu, siyahını yenilə
+            loadTodayScans();
             return;
           }
 
           if (c === 1){
-            const token = res.token || res.confirmToken || res.data?.token || res.data?.confirmToken || null;
+            const token =
+              res.token ||
+              res.confirmToken ||
+              res.data?.token ||
+              res.data?.confirmToken ||
+              null;
 
             pendingConfirmQrData = qrData;
             pendingConfirmMeta = { name, id, type:'Quru Talon' };
             pendingConfirmToken = token;
 
             updateStatus('warning','Təsdiq');
-            addLocalScanToTop({name, id, type:'Quru Talon', msg:'Təsdiq et (2-ci scan)', level:'confirm'});
-
             showResult({
               resultType:'confirm',
               name, id,
@@ -412,6 +393,8 @@
               mode:'confirm',
               confirmToken: token
             });
+            // ✅ scan oldu, siyahını yenilə
+            loadTodayScans();
             return;
           }
 
@@ -420,28 +403,30 @@
 
         if (res.status === 'success'){
           updateStatus('success', res.message || 'Təsdiqləndi');
-          addLocalScanToTop({name, id, type: ticketType, msg: res.message || 'Təsdiqləndi', level:'success'});
           showResult({resultType:'success', name, id, type: ticketType, statusText: res.message || 'Təsdiqləndi', mode:'auto'});
-          loadTodayScans(); // ✅ hər uğurlu skandan sonra server siyahısını yenilə
+          loadTodayScans();
           return;
         }
 
         if (res.status === 'warning'){
           updateStatus('warning', res.message || 'Xəbərdarlıq');
-          addLocalScanToTop({name, id, type: ticketType, msg: res.message || 'Xəbərdarlıq', level:'warning'});
           showResult({resultType:'warning', name, id, type: ticketType, statusText: res.message || 'Xəbərdarlıq', mode:'auto'});
           loadTodayScans();
           return;
         }
 
         if (res.status === 'confirm'){
-          const token = res.token || res.confirmToken || res.data?.token || res.data?.confirmToken || null;
+          const token =
+            res.token ||
+            res.confirmToken ||
+            res.data?.token ||
+            res.data?.confirmToken ||
+            null;
 
           pendingConfirmQrData = qrData;
           pendingConfirmMeta = { name, id, type: ticketType };
           pendingConfirmToken = token;
 
-          addLocalScanToTop({name, id, type: ticketType, msg: res.message || 'Təsdiq tələb olunur', level:'confirm'});
           showResult({
             resultType:'confirm',
             name, id, type: ticketType,
@@ -449,16 +434,16 @@
             mode:'confirm',
             confirmToken: token
           });
+          loadTodayScans();
           return;
         }
 
         updateStatus('error', res.message || 'Xəta');
-        addLocalScanToTop({name:'Xəta', id:'-', type:'-', msg: res.message || 'Xəta', level:'error'});
         showResult({resultType:'error', name:'Xəta', id:'-', type:'-', statusText: res.message || 'Xəta', mode:'auto'});
+        loadTodayScans();
 
       }catch(e){
         updateStatus('error','Serverə qoşulmadı');
-        addLocalScanToTop({name:'Bağlantı xətası', id:'-', type:'-', msg:'Serverə qoşulmadı', level:'error'});
         showResult({resultType:'error', name:'Bağlantı xətası', id:'-', type:'-', statusText:'Serverə qoşulmadı', mode:'auto'});
       }
     }
@@ -478,28 +463,21 @@
         const url =
           `${SHEET_API_URL}?action=confirmDrySecond` +
           `&token=${encodeURIComponent(token)}` +
-          `&confirmToken=${encodeURIComponent(token)}`;
+          `&confirmToken=${encodeURIComponent(token)}` +
+          `&qrData=${encodeURIComponent(qrData)}`;
 
         const res = await fetchJSONP(url, { timeoutMs: 12000, retry: 1 });
 
         if (res && (res.status === 'error' || res.status === 'failed')){
           updateStatus('error', res.message || 'Təsdiq alınmadı');
-          addLocalScanToTop({name: meta.name, id: meta.id, type: meta.type, msg: res.message || 'Təsdiq alınmadı', level:'error'});
           showResult({resultType:'error', name: meta.name, id: meta.id, type: meta.type, statusText: res.message || 'Təsdiq alınmadı', mode:'auto'});
+          loadTodayScans();
           return;
         }
 
         setDryCount(qrData, 2);
 
         updateStatus('success','Təsdiq');
-        addLocalScanToTop({
-          name: res?.data?.adSoyad || meta.name,
-          id: res?.data?.empId || meta.id,
-          type: res?.data?.ticketType || meta.type,
-          msg: res?.message || 'Təsdiq',
-          level:'success'
-        });
-
         showResult({
           resultType:'success',
           name: res?.data?.adSoyad || meta.name,
@@ -508,12 +486,12 @@
           statusText: res?.message || 'Təsdiq ✅',
           mode:'auto'
         });
-
         loadTodayScans();
+
       }catch(e){
         updateStatus('error','Təsdiq göndərilmədi');
-        addLocalScanToTop({name: meta.name, id: meta.id, type: meta.type, msg:'Təsdiq göndərilmədi', level:'error'});
         showResult({resultType:'error', name: meta.name, id: meta.id, type: meta.type, statusText:'Təsdiq göndərilmədi', mode:'auto'});
+        loadTodayScans();
       }finally{
         btn.textContent = 'Göndərildi ✅';
       }
@@ -543,17 +521,16 @@
       });
     }
 
-    document.getElementById('searchInput').addEventListener('input', () => renderScanList());
-
-    window.onload = async () => {
-      await loadTodayScans();
+    window.onload = () => {
       startCamera();
-      setInterval(loadTodayScans, 30000);
+      // ✅ səhifə açılan kimi bu gün skan edilənləri sheetdən oxu
+      startTodayPolling();
     };
 
     window.onbeforeunload = ()=>{
       try{ if (html5QrCode) html5QrCode.stop(); }catch(e){}
       if (countdownInterval) clearInterval(countdownInterval);
+      if (todayTimer) clearInterval(todayTimer);
     };
   </script>
 </body>
