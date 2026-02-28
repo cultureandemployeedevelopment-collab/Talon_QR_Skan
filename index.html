@@ -72,10 +72,155 @@
     </div>
   </div>
 
+ codex/add-confirmation-sound-for-actions-pgq9ev
+    <script>
+        // WEB APP URL-NİZİ BURAYA YAZIN (BOŞLUQ OLMASIN!)
+        const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbyP2-65xmLFVfVMCb2Z3ZmO3jqE0vJrIecd_NcJXPC0glKkYFS5q8CJhKxHBFr5YB7n/exec';
+        
+        let isProcessing = false;
+        let scanHistory = [];
+        let html5QrCode = null;
+        let countdownInterval = null;
+        let audioContext = null;
+
+        function ensureAudioContext() {
+            if (!audioContext) {
+                const Ctx = window.AudioContext || window.webkitAudioContext;
+                if (!Ctx) return null;
+                audioContext = new Ctx();
+            }
+
+            if (audioContext.state === 'suspended') {
+                audioContext.resume().catch(() => {});
+            }
+
+            return audioContext;
+        }
+
+        function playTone(frequency, duration, startAt, volume = 0.22) {
+            const ctx = ensureAudioContext();
+            if (!ctx) return;
+
+            const oscillator = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(frequency, startAt);
+
+            gain.gain.setValueAtTime(0, startAt);
+            gain.gain.linearRampToValueAtTime(volume, startAt + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
+
+            oscillator.connect(gain);
+            gain.connect(ctx.destination);
+
+            oscillator.start(startAt);
+            oscillator.stop(startAt + duration);
+        }
+
+        function playFeedbackSound(resultType) {
+            const ctx = ensureAudioContext();
+            if (!ctx) return;
+
+            const now = ctx.currentTime;
+
+            if (resultType === 'success') {
+                playTone(880, 0.18, now, 0.24);
+                playTone(1175, 0.25, now + 0.2, 0.24);
+            } else if (resultType === 'warning') {
+                playTone(520, 0.22, now, 0.24);
+                playTone(420, 0.28, now + 0.24, 0.24);
+            } else {
+                playTone(350, 0.35, now, 0.2);
+            }
+        }
+
+        // JSONP fetch
+        function fetchJSONP(url) {
+            return new Promise((resolve, reject) => {
+                const cb = 'cb_' + Date.now();
+                const script = document.createElement('script');
+                
+                window[cb] = (data) => {
+                    delete window[cb];
+                    script.remove();
+                    resolve(data);
+                };
+                
+                setTimeout(() => {
+                    delete window[cb];
+                    script.remove();
+                    reject(new Error('Timeout'));
+                }, 10000);
+                
+                script.src = url + '&callback=' + cb;
+                document.head.appendChild(script);
+            });
+        }
+
+        // 10 saniyəlik nəticə ekranını göstər
+        function showResult(data) {
+            const overlay = document.getElementById('resultOverlay');
+            const card = document.getElementById('resultCard');
+            const icon = document.getElementById('resultIcon');
+            const title = document.getElementById('resultTitle');
+            const countdownEl = document.getElementById('countdown');
+            
+            // Məlumatları doldur
+            document.getElementById('detailName').textContent = data.name || '-';
+            document.getElementById('detailId').textContent = data.id || '-';
+            document.getElementById('detailTicket').textContent = data.type || '-';
+            document.getElementById('detailStatus').textContent = data.statusText || '-';
+            
+            // Stil təyin et
+            card.className = 'result-card result-' + data.resultType;
+            
+            if (data.resultType === 'success') {
+                icon.textContent = '✓';
+                title.textContent = 'Təsdiqləndi';
+            } else if (data.resultType === 'warning') {
+                icon.textContent = '⚠';
+                title.textContent = 'Xəbərdarlıq';
+            } else {
+                icon.textContent = '✕';
+                title.textContent = 'Xəta';
+            }
+
+            playFeedbackSound(data.resultType);
+            
+            // Ekranı göstər
+            overlay.style.display = 'flex';
+            
+            // Geri sayım başlat
+            let seconds = 10;
+            countdownEl.textContent = seconds;
+            
+            if (countdownInterval) clearInterval(countdownInterval);
+            
+            countdownInterval = setInterval(() => {
+                seconds--;
+                countdownEl.textContent = seconds;
+                
+                if (seconds <= 0) {
+                    clearInterval(countdownInterval);
+                    hideResult();
+                }
+            }, 1000);
+            
+            // Kliklə bağlamaq üçün
+            overlay.onclick = function(e) {
+                if (e.target === overlay) {
+                    clearInterval(countdownInterval);
+                    hideResult();
+                }
+            };
+        }
+
   <div class="result-overlay" id="resultOverlay">
     <div class="result-card" id="resultCard">
       <div class="result-icon" id="resultIcon">✓</div>
       <div class="result-title" id="resultTitle">Təsdiqləndi</div>
+ main
 
       <div class="result-details">
         <div class="detail-row"><span class="detail-label">Əməkdaş:</span><span class="detail-value" id="detailName">-</span></div>
