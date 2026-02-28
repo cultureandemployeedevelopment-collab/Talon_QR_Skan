@@ -286,6 +286,34 @@
       .modalCard,
       .qrBox img{transform:none!important;opacity:1!important;}
     }
+
+    /* ===== DAILY SCANS ===== */
+    .searchRow{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+    .searchInput{
+      flex:1;padding:12px 14px;border-radius:16px;border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.06);color:var(--text);outline:none;font-size:15px;
+    }
+    .searchInput::placeholder{color:rgba(234,241,255,.40);}
+    .refreshBtn{
+      flex-shrink:0;padding:10px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.16);
+      background:rgba(255,255,255,.06);color:var(--text);cursor:pointer;font-size:18px;
+      transition:transform var(--speed);
+    }
+    .refreshBtn:hover{transform:rotate(20deg);}
+    .scanList{display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;}
+    .scanItem{
+      display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;
+      border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);
+    }
+    .scanItem .sTime{color:rgba(234,241,255,.55);font-size:12px;font-weight:700;min-width:42px;}
+    .scanItem .sName{flex:1;font-weight:800;font-size:14px;}
+    .scanItem .sType{color:rgba(234,241,255,.65);font-size:12px;font-weight:700;}
+    .scanStatus{padding:4px 9px;border-radius:999px;font-size:11px;font-weight:900;border:1px solid transparent;}
+    .scanStatus.ok{background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.35);color:#86efac;}
+    .scanStatus.dup{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.30);color:#fca5a5;}
+    .scanStatus.other{background:rgba(234,241,255,.08);border-color:rgba(255,255,255,.16);color:rgba(234,241,255,.72);}
+    .scanEmpty{text-align:center;color:rgba(234,241,255,.40);padding:24px 0;font-weight:700;}
+    .scanCount{color:rgba(234,241,255,.60);font-size:13px;font-weight:700;}
   </style>
 </head>
 
@@ -378,6 +406,21 @@
             1–5 ulduz seçin və qısa səbəb yazın.
           </div>
           <button class="btn btn-outline" onclick="openRatingModal()">🍽️ Yeməyi qiymətləndir</button>
+        </div>
+      </div>
+
+      <!-- DAILY SCANS -->
+      <div class="glass section" id="dailyScansSection" style="margin-top:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
+          <div style="font-weight:900;">📋 Bu günün skanları</div>
+          <span class="scanCount" id="scanCountLabel"></span>
+        </div>
+        <div class="searchRow">
+          <input class="searchInput" id="scanSearch" type="search" placeholder="🔍 Ad ilə axtar..." oninput="filterScans()" aria-label="Scan axtarışı" />
+          <button class="refreshBtn" onclick="loadDailyScans()" title="Yenilə" aria-label="Yenilə">🔄</button>
+        </div>
+        <div class="scanList" id="scanList">
+          <div class="scanEmpty">Yüklənir...</div>
         </div>
       </div>
     </div>
@@ -810,6 +853,7 @@
 
           renderTickets();
           preloadAllQRCodes();
+          startDailyScansAutoRefresh();
 
           animateLoginToApp();
 
@@ -841,8 +885,82 @@
       hideModal('ratingModal');
       setQRBoxHTML('');
 
+      stopDailyScansAutoRefresh();
+      allDailyScans = [];
+
       showLogin();
       resetLoginCard();
+    }
+
+    const DAILY_SCANS_REFRESH_MS = 30000;
+
+    /* ===== Daily Scans ===== */
+    let allDailyScans = [];
+    let dailyScansTimer = null;
+
+    function scanStatusClass(status) {
+      if (!status) return 'other';
+      if (status === 'Təsdiqləndi' || status === 'Təsdiq') return 'ok';
+      if (status === 'Təkrar cəhd') return 'dup';
+      return 'other';
+    }
+
+    function renderDailyScans(scans) {
+      const list = document.getElementById('scanList');
+      const label = document.getElementById('scanCountLabel');
+      if (!scans || scans.length === 0) {
+        list.innerHTML = '<div class="scanEmpty">Bu gün heç bir skan yoxdur</div>';
+        if (label) label.textContent = '';
+        return;
+      }
+      if (label) label.textContent = scans.length + ' nəfər';
+      list.innerHTML = scans.map(s => {
+        const cls = scanStatusClass(s.status);
+        return `<div class="scanItem">
+          <span class="sTime">${s.time || ''}</span>
+          <span class="sName">${s.name || s.empId || ''}</span>
+          <span class="sType">${s.type || ''}</span>
+          <span class="scanStatus ${cls}">${s.status || ''}</span>
+        </div>`;
+      }).join('');
+    }
+
+    function filterScans() {
+      const q = (document.getElementById('scanSearch').value || '').trim().toLowerCase();
+      if (!q) {
+        renderDailyScans(allDailyScans);
+        return;
+      }
+      const filtered = allDailyScans.filter(s =>
+        (s.name || '').toLowerCase().includes(q) ||
+        (s.empId || '').toLowerCase().includes(q)
+      );
+      renderDailyScans(filtered);
+      const label = document.getElementById('scanCountLabel');
+      if (label) label.textContent = filtered.length + '/' + allDailyScans.length + ' nəfər';
+    }
+
+    async function loadDailyScans() {
+      try {
+        const url = `${SHEET_API_URL}?action=getDailyScans`;
+        const res = await fetchJSONP(url);
+        if (res && res.status === 'success') {
+          allDailyScans = res.scans || [];
+          filterScans();
+        }
+      } catch (e) {
+        console.error('loadDailyScans error:', e);
+      }
+    }
+
+    function startDailyScansAutoRefresh() {
+      if (dailyScansTimer) clearInterval(dailyScansTimer);
+      loadDailyScans();
+      dailyScansTimer = setInterval(loadDailyScans, DAILY_SCANS_REFRESH_MS);
+    }
+
+    function stopDailyScansAutoRefresh() {
+      if (dailyScansTimer) { clearInterval(dailyScansTimer); dailyScansTimer = null; }
     }
 
     window.onload = () => {
@@ -863,6 +981,7 @@
 
         renderTickets();
         preloadAllQRCodes();
+        startDailyScansAutoRefresh();
 
         document.getElementById('loginPage').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
