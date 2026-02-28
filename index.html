@@ -1,992 +1,343 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="az">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no"/>
-  <title>GHG Yemək Talonu</title>
-
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GHG Talon - Skan</title>
   <style>
     :root{
-      --navy-950:#050b16;--navy-900:#070f1f;--navy-850:#09142a;
-      --text:#eaf1ff;--muted:rgba(234,241,255,.72);
-      --stroke:rgba(255,255,255,.10);
-      --shadow:0 22px 70px rgba(0,0,0,.62);
-      --radius:22px;--speed:240ms;
-      --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
-      --safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px);
+      --bg:#0b1220;
+      --card:#111a2e;
+      --muted:#8ea0c6;
+      --text:#eaf0ff;
+      --ok:#22c55e;
+      --warn:#f59e0b;
+      --err:#ef4444;
+      --line:#223055;
+      --btn:#2563eb;
+      --btn2:#334155;
+      --input:#0f1b33;
     }
-    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-    html,body{height:100%}
     body{
-      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
-      min-height:100dvh;color:var(--text);
-      background:
-        radial-gradient(1200px 900px at 18% 12%, #061634 0%, transparent 55%),
-        radial-gradient(900px 700px at 88% 22%, #07122a 0%, transparent 52%),
-        radial-gradient(800px 650px at 55% 85%, #040a18 0%, transparent 60%),
-        linear-gradient(140deg, var(--navy-950) 0%, var(--navy-900) 40%, var(--navy-850) 100%);
-      padding:calc(14px + var(--safe-top)) calc(14px + var(--safe-right)) calc(14px + var(--safe-bottom)) calc(14px + var(--safe-left));
-      overflow-x:hidden;
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: linear-gradient(180deg, #070b14, var(--bg));
+      color:var(--text);
     }
-    .wrap{max-width:1060px;margin:0 auto;position:relative}
-
-    .glass{
-      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      border:1px solid var(--stroke);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      backdrop-filter:blur(12px);
+    .wrap{max-width:1100px;margin:0 auto;padding:18px;}
+    .grid{display:grid;grid-template-columns: 1.1fr 0.9fr;gap:16px;}
+    @media (max-width: 900px){ .grid{grid-template-columns:1fr;} }
+    .card{
+      background: rgba(17,26,46,0.85);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      backdrop-filter: blur(6px);
     }
-
+    h1{font-size:18px;margin:0 0 10px;}
+    h2{font-size:14px;margin:0 0 10px;color:#cfe0ff}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .muted{color:var(--muted);font-size:12px}
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;
+      border:1px solid var(--line);border-radius:999px;
+      padding:6px 10px;background: rgba(15,27,51,0.6);
+      font-size:12px;color:#dce7ff;
+    }
     .btn{
-      width:100%;border:none;color:white;cursor:pointer;padding:14px 16px;border-radius:16px;font-weight:800;letter-spacing:.2px;
-      background:linear-gradient(135deg,#0f2a55 0%,#1f55d9 52%,#103a9d 100%);
-      box-shadow:0 14px 34px rgba(31,85,217,.20);
-      transition:transform var(--speed) ease, box-shadow var(--speed) ease, filter var(--speed) ease;
-      position:relative;overflow:hidden;touch-action:manipulation;
+      border:0;border-radius:10px;
+      padding:10px 12px;
+      cursor:pointer;
+      color:white;background:var(--btn);
+      font-weight:600;
     }
-    .btn:hover{transform:translateY(-1px)}
-    .btn:active{transform:translateY(0)}
-    .btn:disabled{opacity:.65;cursor:not-allowed}
-
-    .btn-outline{
-      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      border:1px solid rgba(255,255,255,.14);
-      box-shadow:0 12px 40px rgba(0,0,0,.35);
+    .btn.secondary{background:var(--btn2)}
+    .input{
+      background: rgba(15,27,51,0.9);
+      border:1px solid var(--line);
+      color:var(--text);
+      border-radius:10px;
+      padding:10px 12px;
+      outline:none;
+      width:100%;
+      box-sizing:border-box;
     }
-    .btn-danger{
-      background:linear-gradient(135deg,#5a1515 0%,#ef4444 60%,#951010 100%);
-      box-shadow:0 16px 44px rgba(239,68,68,.16);
-      width:auto;padding:10px 14px;border-radius:999px;font-weight:800;cursor:pointer;border:none;color:#fff;
-    }
-
-    /* ===== LOGIN ===== */
-    .login{
-      min-height:calc(100dvh - 28px);
-      display:flex;align-items:flex-start;justify-content:center;
-      padding-top:clamp(24px,7vh,72px);
-      perspective: 1200px; /* 3D sahə */
-    }
-
-    /* 3D login kart */
-    .loginCard{
-      padding:26px;border-radius:24px;border:1px solid rgba(255,255,255,.09);
-      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      backdrop-filter:blur(12px);
-      max-width:440px;width:100%;
-      position:relative;
-      box-shadow:
-        0 24px 70px rgba(0,0,0,.62),
-        0 18px 40px rgba(0,0,0,.45);
-      will-change:transform;
-      overflow:hidden;
-      transform-style: preserve-3d;
-      transition: transform 140ms ease;
-    }
-
-    /* 3D highlight qat */
-    .loginCard::before{
-      content:"";
-      position:absolute;inset:-2px;
-      background:
-        radial-gradient(800px 280px at var(--mx,50%) var(--my,20%), rgba(255,255,255,.12), transparent 55%),
-        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-      opacity:.9;
-      pointer-events:none;
-      transform: translateZ(1px);
-    }
-
-    /* alt kölgə */
-    .loginCard::after{
-      content:"";
-      position:absolute;
-      left:10%;
-      right:10%;
-      bottom:-18px;
-      height:26px;
-      background:radial-gradient(closest-side, rgba(255,255,255,.14), transparent 70%);
-      filter:blur(10px);
-      opacity:.85;
-      pointer-events:none;
-      transform: translateZ(1px);
-    }
-
-    /* PRO CONTINUOUS AURORA EDGE */
-    .edgeGlow{
-      position:absolute;
-      inset:-10px;
-      pointer-events:none;
-      z-index:2;
-      opacity:.95;
-      filter:
-        drop-shadow(0 0 10px rgba(255,255,255,.10))
-        drop-shadow(0 0 22px rgba(255,255,255,.06));
-      transform: translateZ(2px);
-    }
-    .edgeGlow svg{width:100%;height:100%;display:block}
-
-    .edgeGlow .base{
-      fill:none;
-      stroke:rgba(255,255,255,.09);
-      stroke-width:.9;
-      opacity:.55;
-    }
-    .edgeGlow .aurora{
-      fill:none;
-      stroke:url(#auroraGrad);
-      stroke-width:5.6;
-      stroke-linecap:round;
-      opacity:.35;
-      filter: blur(1.15px);
-      stroke-dasharray: 240 520;
-      animation: auroraMove 10.5s linear infinite;
-    }
-    .edgeGlow .thin{
-      fill:none;
-      stroke:url(#thinGrad);
-      stroke-width:1.05;
-      stroke-linecap:round;
-      opacity:.90;
-      stroke-dasharray: 180 580;
-      animation: thinMove 5.4s linear infinite;
-    }
-    @keyframes thinMove{ to{ stroke-dashoffset:-760; } }
-    @keyframes auroraMove{ to{ stroke-dashoffset:-760; } }
-
-    /* login->app flip (sənin əvvəlki anim) */
-    .loginCard.loginFlipOut{
-      transition:transform 650ms cubic-bezier(.2,.85,.2,1), opacity 650ms ease;
-      transform:rotateY(180deg) translateY(-4px) scale(.98);
-      opacity:0;
-      pointer-events:none;
-    }
-
-    label{display:block;color:rgba(234,241,255,.92);font-weight:800;margin:10px 0 6px;}
-    input{
-      width:100%;padding:14px 14px;border-radius:16px;border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.045);color:var(--text);outline:none;font-size:16px;
-    }
-    .error{
-      margin-top:12px;padding:12px;border-radius:14px;border:1px solid rgba(239,68,68,.35);
-      background:rgba(239,68,68,.12);color:#ffd7d7;display:none;font-weight:700;
-    }
-
-    /* ===== APP ===== */
-    #mainApp{display:none;}
-    .fadeIn{animation:fadeInUp 380ms ease both;}
-    @keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-
-    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;margin-top:10px;}
-    .chip{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.055);font-weight:800;}
-    .grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:12px;}
-    @media(min-width:900px){.grid{grid-template-columns:1.55fr .95fr;align-items:start;}}
-    .section{padding:18px;}
-
-    .ticketGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-    @media(min-width:700px){.ticketGrid{grid-template-columns:repeat(4,1fr);}}
-    .ticket{
-      border-radius:18px;padding:16px 14px;border:1px solid rgba(255,255,255,.14);
-      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      box-shadow:0 12px 35px rgba(0,0,0,.34);
-      cursor:pointer;position:relative;overflow:hidden;user-select:none;touch-action:pan-y;
-      transition:transform 220ms ease, box-shadow 220ms ease;
-    }
-    .ticket:hover{transform:translateY(-2px);box-shadow:0 16px 44px rgba(0,0,0,.44)}
-    .ticket .icon{font-size:36px}
-    .ticket .name{font-weight:950;margin-top:8px}
-    .ticket .time{color:var(--muted);font-weight:700;font-size:12px;margin-top:4px}
-    .badge{margin-top:10px;display:inline-flex;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:900;letter-spacing:.3px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);}
-
-    /* ===== MODAL / QR pro anim ===== */
-    .modal{
-      position:fixed;inset:0;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;
-      padding:16px;z-index:1000;touch-action:none;
-    }
-    .modal.show{display:flex!important;}
-    .modalCard{
-      width:100%;max-width:430px;padding:18px;border-radius:22px;border:1px solid rgba(255,255,255,.14);
-      background:linear-gradient(180deg, rgba(6,12,22,.92), rgba(4,8,16,.92));
-      box-shadow:var(--shadow);backdrop-filter:blur(10px);text-align:center;
-      transform: translateY(0) scale(1);
-      opacity:1;
-    }
-    @keyframes modalPop{to{ transform: translateY(0) scale(1); opacity:1; }}
-
-    .qrBox{
-      width:250px;height:250px;margin:16px auto 10px;padding:14px;border-radius:18px;background:rgba(255,255,255,.97);
-      display:grid;place-items:center;box-shadow:0 16px 44px rgba(0,0,0,.50);overflow:hidden;
-      position:relative;
-    }
-    .qrBox::before{
-      content:"";
-      position:absolute; inset:-40%;
-      background: linear-gradient(120deg, transparent 40%, rgba(0,0,0,.08) 50%, transparent 60%);
-      transform: translateX(-60%) rotate(10deg);
-      animation: sheen 1.8s ease-in-out infinite;
-      opacity:.48;
-      pointer-events:none;
-    }
-    @keyframes sheen{
-      0%{ transform: translateX(-70%) rotate(10deg); opacity:.10; }
-      45%{ opacity:.48; }
-      100%{ transform: translateX(70%) rotate(10deg); opacity:.08; }
-    }
-    .qrBox img{
-      width:220px;height:220px;image-rendering:pixelated;
-      transform: scale(1);
-      opacity:1;
+    .statusBox{
+      border:1px dashed var(--line);
       border-radius:12px;
+      padding:12px;
+      background: rgba(15,27,51,0.45);
     }
-    @keyframes qrIn{to{ transform: scale(1); opacity:1; }}
-
-    @media (prefers-reduced-motion: no-preference){
-      .modalCard{
-        transform: translateY(10px) scale(.985);
-        opacity:0;
-        animation: modalPop 260ms ease forwards;
-      }
-
-      .qrBox img{
-        transform: scale(.94);
-        opacity:0;
-        animation: qrIn 220ms ease forwards;
-      }
+    .statusText{font-size:14px;font-weight:700;margin:0 0 6px;}
+    .statusText.ok{color:var(--ok)}
+    .statusText.warn{color:var(--warn)}
+    .statusText.err{color:var(--err)}
+    .tableWrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
+    table{width:100%;border-collapse:collapse;min-width:720px}
+    th,td{padding:10px 10px;border-bottom:1px solid rgba(34,48,85,0.6);font-size:13px}
+    th{position:sticky;top:0;background:#0f1b33;color:#dbe6ff;text-align:left;z-index:1}
+    tr:hover td{background: rgba(37,99,235,0.07)}
+    .tag{
+      font-size:12px;
+      padding:4px 8px;border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      white-space:nowrap;
     }
-
-    .qrLoader{
-      width:40px;height:40px;border-radius:999px;
-      border:4px solid rgba(11,23,50,.16);
-      border-top-color: rgba(11,23,50,.82);
-      animation: spin 900ms linear infinite;
-    }
-    @keyframes spin{ to{ transform: rotate(360deg); } }
-
-    .qrStatusText{
-      width:100%;height:100%;display:grid;place-items:center;color:#0b1732;font-weight:950;font-size:16px;
-      background:rgba(0,0,0,.04);border-radius:14px;
-    }
-
-    .stars{display:flex;justify-content:center;gap:10px;margin:12px 0 10px;}
-    .starBtn{font-size:32px;background:none;border:none;cursor:pointer;color:rgba(255,255,255,.28);touch-action:manipulation;}
-    .starBtn.active{color:#ffbf2f;}
-    textarea{
-      width:100%;min-height:120px;padding:12px;border-radius:16px;border:1px solid rgba(255,255,255,.16);
-      background:rgba(255,255,255,.07);color:var(--text);outline:none;resize:vertical;font-size:15px;
-    }
-    #qrPreRender{position:fixed;left:-99999px;top:-99999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;}
-
-    /* remember creds row */
-    .rememberRow{display:flex;align-items:center;gap:10px;margin-top:12px;color:rgba(234,241,255,.85);font-weight:800;}
-    .rememberRow input{width:18px;height:18px;padding:0;border-radius:6px}
-
-    @media (prefers-reduced-motion: reduce){
-      *{animation:none!important;transition:none!important}
-      .modalCard,
-      .qrBox img{transform:none!important;opacity:1!important;}
-    }
-
-    /* ===== DAILY SCANS ===== */
-    .searchRow{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
-    .searchInput{
-      flex:1;padding:12px 14px;border-radius:16px;border:1px solid rgba(255,255,255,.16);
-      background:rgba(255,255,255,.06);color:var(--text);outline:none;font-size:15px;
-    }
-    .searchInput::placeholder{color:rgba(234,241,255,.40);}
-    .refreshBtn{
-      flex-shrink:0;padding:10px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.16);
-      background:rgba(255,255,255,.06);color:var(--text);cursor:pointer;font-size:18px;
-      transition:transform var(--speed);
-    }
-    .refreshBtn:hover{transform:rotate(20deg);}
-    .scanList{display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;}
-    .scanItem{
-      display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;
-      border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);
-    }
-    .scanItem .sTime{color:rgba(234,241,255,.55);font-size:12px;font-weight:700;min-width:42px;}
-    .scanItem .sName{flex:1;font-weight:800;font-size:14px;}
-    .scanItem .sType{color:rgba(234,241,255,.65);font-size:12px;font-weight:700;}
-    .scanStatus{padding:4px 9px;border-radius:999px;font-size:11px;font-weight:900;border:1px solid transparent;}
-    .scanStatus.ok{background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.35);color:#86efac;}
-    .scanStatus.dup{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.30);color:#fca5a5;}
-    .scanStatus.other{background:rgba(234,241,255,.08);border-color:rgba(255,255,255,.16);color:rgba(234,241,255,.72);}
-    .scanEmpty{text-align:center;color:rgba(234,241,255,.40);padding:24px 0;font-weight:700;}
-    .scanCount{color:rgba(234,241,255,.60);font-size:13px;font-weight:700;}
+    .tag.ok{border-color:rgba(34,197,94,0.45); color:#bff3cf}
+    .tag.warn{border-color:rgba(245,158,11,0.5); color:#ffe3b0}
+    .tag.err{border-color:rgba(239,68,68,0.45); color:#ffc3c3}
+    .small{font-size:12px}
+    .split{display:grid;grid-template-columns: 1fr 1fr; gap:10px}
+    @media (max-width: 520px){ .split{grid-template-columns:1fr;} }
   </style>
 </head>
 
 <body>
   <div class="wrap">
-
-    <!-- LOGIN -->
-    <div class="login" id="loginPage">
-      <div class="loginCard" id="loginCard">
-
-        <!-- PRO continuous edge -->
-        <div class="edgeGlow" aria-hidden="true">
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="auroraGrad" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%"   stop-color="rgba(255,255,255,0)" />
-                <stop offset="20%"  stop-color="rgba(255,255,255,.14)" />
-                <stop offset="50%"  stop-color="rgba(255,255,255,.24)" />
-                <stop offset="80%"  stop-color="rgba(255,255,255,.14)" />
-                <stop offset="100%" stop-color="rgba(255,255,255,0)" />
-              </linearGradient>
-              <linearGradient id="thinGrad" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%"   stop-color="rgba(255,255,255,0)" />
-                <stop offset="35%"  stop-color="rgba(255,255,255,.45)" />
-                <stop offset="50%"  stop-color="rgba(255,255,255,.95)" />
-                <stop offset="65%"  stop-color="rgba(255,255,255,.45)" />
-                <stop offset="100%" stop-color="rgba(255,255,255,0)" />
-              </linearGradient>
-            </defs>
-
-            <rect x="2.6" y="2.6" width="94.8" height="94.8" rx="10" ry="10" class="base"></rect>
-            <rect x="2.6" y="2.6" width="94.8" height="94.8" rx="10" ry="10" class="aurora"></rect>
-            <rect x="2.6" y="2.6" width="94.8" height="94.8" rx="10" ry="10" class="thin"></rect>
-          </svg>
-        </div>
-
-        <div style="text-align:center;font-weight:900;font-size:20px;margin-bottom:6px;position:relative;z-index:3;transform:translateZ(4px);">
-          GHG Yemək
-        </div>
-        <div style="text-align:center;color:rgba(234,241,255,.72);font-weight:800;margin-bottom:18px;position:relative;z-index:3;transform:translateZ(4px);">
-          Elektron talon sistemi
-        </div>
-
-        <div style="text-align:center;color:rgba(234,241,255,.72);font-weight:800;margin-bottom:8px;position:relative;z-index:3;transform:translateZ(4px);">
-          İşçi ID və 4 rəqəmli parol ilə daxil olun
-        </div>
-
-        <form onsubmit="handleLogin(event)" style="position:relative;z-index:3;transform:translateZ(4px);">
-          <label>İşçi ID</label>
-          <input id="employeeId" type="text" inputmode="numeric" autocomplete="username" required />
-
-          <label>Parol (4 rəqəm)</label>
-          <input id="employeePass" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password" required />
-
-          <div class="rememberRow">
-            <input id="rememberCreds" type="checkbox" />
-            <label for="rememberCreds" style="margin:0;">Parolu yadda saxla</label>
-          </div>
-
-          <div style="height:12px"></div>
-          <button class="btn" id="loginBtn" type="submit">Daxil ol</button>
-          <div class="error" id="errorMsg"></div>
-        </form>
+    <div class="row" style="justify-content:space-between;margin-bottom:12px;">
+      <div>
+        <h1>GHG Elektron Talon — Skan Paneli</h1>
+        <div class="muted">Bugünkü skanlar avtomatik göstərilir və hər gün “0”dan başlayır (yalnız bugünkü tarix filtr olunur).</div>
+      </div>
+      <div class="row">
+        <span class="pill"><span class="muted">Tarix:</span> <b id="todayLabel">-</b></span>
+        <span class="pill"><span class="muted">Cəm skan:</span> <b id="totalLabel">0</b></span>
       </div>
     </div>
 
-    <!-- APP -->
-    <div id="mainApp">
-      <div class="glass topbar">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <span class="chip">👤 <span id="displayName"></span></span>
-          <span class="chip">🆔 <span id="displayId"></span></span>
-          <span class="chip" style="color:rgba(234,241,255,.72);" id="dateInfo"></span>
+    <div class="grid">
+      <!-- LEFT: Scan -->
+      <div class="card">
+        <h2>Skan</h2>
+
+        <div class="split">
+          <div>
+            <label class="muted">QR Data (test üçün əl ilə də daxil edə bilərsiniz)</label>
+            <input id="qrInput" class="input" placeholder="GHG|123|G|28.02.2026|HASH|lunch" />
+          </div>
+          <div>
+            <label class="muted">Axtarış (Ad / ID)</label>
+            <input id="searchInput" class="input" placeholder="Məs: Elvin / 1023" />
+          </div>
         </div>
-        <button class="btn-danger" onclick="logout()">Çıxış</button>
+
+        <div class="row" style="margin-top:10px;">
+          <button class="btn" id="btnScan">Skan et</button>
+          <button class="btn secondary" id="btnRefresh">Yenilə</button>
+          <span class="muted small" id="hintApi">API: <span id="apiBase">Script URL tələb olunur</span></span>
+        </div>
+
+        <div style="margin-top:12px;" class="statusBox">
+          <div id="statusText" class="statusText">Hazırdır</div>
+          <div class="muted" id="statusDetail">Skan etdikcə aşağıdakı cədvəl bugünkü skanlara görə yenilənəcək.</div>
+
+          <div id="confirmBox" style="display:none;margin-top:10px;">
+            <div class="muted" style="margin-bottom:8px;">Quru talon 2-ci mərhələ təsdiqi tələb olunur.</div>
+            <button class="btn" id="btnConfirmDry">Təsdiqlə</button>
+            <button class="btn secondary" id="btnCancelConfirm">Ləğv et</button>
+          </div>
+        </div>
       </div>
 
-      <div class="grid">
-        <div class="glass section">
-          <div style="font-weight:900;margin-bottom:10px;">🎫 Talonlarım</div>
-          <div style="padding:12px 14px;border-radius:16px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:rgba(234,241,255,.92);margin-bottom:14px;line-height:1.35;">
-            <b>Qaydalar:</b> Hər talon üçün hər gün yeni QR yaranır.
-          </div>
-          <div class="ticketGrid" id="ticketContainer"></div>
+      <!-- RIGHT: Today list -->
+      <div class="card">
+        <h2>Bugünkü skanlar</h2>
+        <div class="muted" style="margin-bottom:10px;">
+          Axtarış aktivdir. Siyahı yalnız <b>bugünkü tarix</b> üçün göstərilir.
         </div>
 
-        <div class="glass section">
-          <div style="font-weight:900;margin-bottom:10px;">⭐ Yemək qiymətləndirməsi</div>
-          <div style="padding:12px 14px;border-radius:16px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:rgba(234,241,255,.92);margin-bottom:12px;line-height:1.35;">
-            1–5 ulduz seçin və qısa səbəb yazın.
-          </div>
-          <button class="btn btn-outline" onclick="openRatingModal()">🍽️ Yeməyi qiymətləndir</button>
-        </div>
-      </div>
-
-      <!-- DAILY SCANS -->
-      <div class="glass section" id="dailyScansSection" style="margin-top:14px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap;">
-          <div style="font-weight:900;">📋 Bu günün skanları</div>
-          <span class="scanCount" id="scanCountLabel"></span>
-        </div>
-        <div class="searchRow">
-          <input class="searchInput" id="scanSearch" type="search" placeholder="🔍 Ad ilə axtar..." oninput="filterScans()" aria-label="Scan axtarışı" />
-          <button class="refreshBtn" onclick="loadDailyScans()" title="Yenilə" aria-label="Yenilə">🔄</button>
-        </div>
-        <div class="scanList" id="scanList">
-          <div class="scanEmpty">Yüklənir...</div>
+        <div class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:88px;">Saat</th>
+                <th style="width:90px;">ID</th>
+                <th>Ad Soyad</th>
+                <th style="width:140px;">Talon</th>
+                <th style="width:130px;">Status</th>
+              </tr>
+            </thead>
+            <tbody id="tbody">
+              <tr><td colspan="5" class="muted">Məlumat yoxdur</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   </div>
 
-  <footer style="margin-top:18px;text-align:center;color:rgba(234,241,255,.72);font-weight:700;">Korporativ Mədəniyyət və İşçilərin İnkişafı komandası tərəfindən hazırlanıb.</footer>
-
-  <!-- QR MODAL -->
-  <div class="modal" id="qrModal" onclick="closeQRModal(event)">
-    <div class="modalCard" onclick="event.stopPropagation()">
-      <div style="font-size:18px;font-weight:950;">🎫 Talonunuz hazırdır</div>
-      <div style="margin-top:8px;color:rgba(234,241,255,.72);font-weight:800;" id="qrTicketInfo"></div>
-      <div class="qrBox"><div id="modalQR"></div></div>
-      <div style="color:rgba(234,241,255,.72);font-weight:800;margin-bottom:12px;">Yeməkxanadakı skanerə göstərin</div>
-      <button class="btn btn-outline" onclick="closeQRModal()">Bağla</button>
-    </div>
-  </div>
-
-  <!-- RATING MODAL -->
-  <div class="modal" id="ratingModal" onclick="closeRatingModal(event)">
-    <div class="modalCard" onclick="event.stopPropagation()">
-      <div style="font-size:18px;font-weight:950;">⭐ Yemək qiymətləndirmə</div>
-      <div style="margin-top:8px;color:rgba(234,241,255,.72);font-weight:800;">1–5 ulduz seçin və səbəb yazın</div>
-
-      <div class="stars" id="ratingStars"></div>
-      <textarea id="ratingReason" placeholder="Məsələn: Yeməklər əladır."></textarea>
-
-      <div style="height:12px"></div>
-      <button class="btn" id="ratingSubmitBtn" onclick="submitRating()">Göndər</button>
-      <div style="height:10px"></div>
-      <button class="btn btn-outline" onclick="closeRatingModal()">Bağla</button>
-    </div>
-  </div>
-
-  <!-- OFFSCREEN PRE-RENDER -->
-  <div id="qrPreRender"></div>
-
-  <script>
-    const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwP9Ze_cbLJqyOWnZmffDI2JlMM_ABersm-JO6-dCPOBgGfb13z85Kz0Cq0RZLg7r69/exec';
-
-    const TICKET_TYPES = [
-      { id: 'breakfast', name: 'Səhər Yeməyi',   icon: '🌅', time: '06:00–10:00', code: 'S' },
-      { id: 'lunch',     name: 'Günorta Yeməyi', icon: '🌞', time: '12:00–15:00', code: 'G' },
-      { id: 'dinner',    name: 'Axşam Yeməyi',   icon: '🌙', time: '18:00–21:00', code: 'A' },
-      { id: 'dry',       name: 'Quru Talon',     icon: '📦', time: 'Hər zaman',   code: 'Q' }
-    ];
-
-    let currentEmployee = null;
-    let selectedRating = 0;
-
-    let qrTextCache = {};
-    let qrImageCache = {};
-
-    /* ===== Remember password (localStorage) ===== */
-    const CREDS_KEY = 'ghg_creds';
-
-    function saveCreds(id, pass){
-      localStorage.setItem(CREDS_KEY, JSON.stringify({ id, pass }));
-    }
-    function loadCreds(){
-      try { return JSON.parse(localStorage.getItem(CREDS_KEY) || 'null'); }
-      catch(e){ return null; }
-    }
-    function clearCreds(){
-      localStorage.removeItem(CREDS_KEY);
-    }
-    function applySavedCredsToForm(){
-      const c = loadCreds();
-      if (!c) return;
-      document.getElementById('employeeId').value = c.id || '';
-      document.getElementById('employeePass').value = c.pass || '';
-      const chk = document.getElementById('rememberCreds');
-      if (chk) chk.checked = true;
-    }
-
-    /* ===== 3D login interaction (mouse/tilt) ===== */
-    function setupLogin3D(){
-      const card = document.getElementById('loginCard');
-      const area = document.getElementById('loginPage');
-
-      if (!card || !area) return;
-
-      const max = 9; // dərəcə
-
-      function setFromPoint(clientX, clientY){
-        const r = card.getBoundingClientRect();
-        const px = (clientX - r.left) / r.width;   // 0..1
-        const py = (clientY - r.top) / r.height;   // 0..1
-
-        const rx = (py - 0.5) * -2 * max; // invert
-        const ry = (px - 0.5) *  2 * max;
-
-        card.style.setProperty('--mx', (px*100).toFixed(1) + '%');
-        card.style.setProperty('--my', (py*100).toFixed(1) + '%');
-
-        if (!card.classList.contains('loginFlipOut')){
-          card.style.transform = `rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)`;
-        }
-      }
-
-      function reset(){
-        if (!card.classList.contains('loginFlipOut')){
-          card.style.transform = `rotateX(0deg) rotateY(0deg)`;
-        }
-        card.style.setProperty('--mx','50%');
-        card.style.setProperty('--my','20%');
-      }
-
-      area.addEventListener('mousemove', (e)=> setFromPoint(e.clientX, e.clientY));
-      area.addEventListener('mouseleave', reset);
-
-      area.addEventListener('touchmove', (e)=>{
-        const t = e.touches && e.touches[0];
-        if (!t) return;
-        setFromPoint(t.clientX, t.clientY);
-      }, {passive:true});
-      area.addEventListener('touchend', reset);
-
-      reset();
-    }
-
-    function pad2(n){ return String(n).padStart(2,'0'); }
-    function todayStr(){
-      const d = new Date();
-      return `${pad2(d.getDate())}.${pad2(d.getMonth()+1)}.${d.getFullYear()}`;
-    }
-
-    function showError(msg){
-      const el = document.getElementById('errorMsg');
-      el.textContent = msg;
-      el.style.display = 'block';
-    }
-    function clearError(){
-      const el = document.getElementById('errorMsg');
-      el.textContent = '';
-      el.style.display = 'none';
-    }
-
-    function openModal(id){
-      const m = document.getElementById(id);
-      m.classList.add('show');
-      document.documentElement.style.overflow = 'hidden';
-      document.body.style.overflow = 'hidden';
-    }
-    function hideModal(id){
-      const m = document.getElementById(id);
-      m.classList.remove('show');
-      document.documentElement.style.overflow = '';
-      document.body.style.overflow = '';
-    }
-
-    function showAppAfterFlip(){
-      document.getElementById('loginPage').style.display = 'none';
-      const app = document.getElementById('mainApp');
-      app.style.display = 'block';
-      app.classList.remove('fadeIn');
-      void app.offsetWidth;
-      app.classList.add('fadeIn');
-    }
-
-    function showLogin(){
-      document.getElementById('mainApp').style.display = 'none';
-      document.getElementById('loginPage').style.display = 'flex';
-    }
-
-    function animateLoginToApp(){
-      const card = document.getElementById('loginCard');
-      card.style.transform = 'rotateX(0deg) rotateY(0deg)';
-      card.classList.add('loginFlipOut');
-      setTimeout(showAppAfterFlip, 650);
-    }
-
-    function resetLoginCard(){
-      const card = document.getElementById('loginCard');
-      card.classList.remove('loginFlipOut');
-      card.style.transform = 'rotateX(0deg) rotateY(0deg)';
-      clearError();
-
-      document.getElementById('employeeId').value = '';
-      document.getElementById('employeePass').value = '';
-      const chk = document.getElementById('rememberCreds');
-      if (chk) chk.checked = false;
-
-      applySavedCredsToForm();
-    }
-
-    function fetchJSONP(url) {
-      return new Promise((resolve, reject) => {
-        const cb = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
-        const script = document.createElement('script');
-
-        window[cb] = (data) => {
-          delete window[cb];
-          script.remove();
-          resolve(data);
-        };
-
-        const t = setTimeout(() => {
-          if (window[cb]) delete window[cb];
-          script.remove();
-          reject(new Error('Timeout'));
-        }, 12000);
-
-        script.onerror = () => { clearTimeout(t); reject(new Error('Load error')); };
-        script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
-        document.head.appendChild(script);
-      });
-    }
-
-    function generateDailyQR(type) {
-      const date = todayStr();
-      const base = `${currentEmployee.id}_${date}_${type.code}_${type.id}`;
-      let hash = 0;
-      for (let i=0;i<base.length;i++){
-        hash = ((hash<<5)-hash)+base.charCodeAt(i);
-        hash |= 0;
-      }
-      const hashCode = Math.abs(hash % 9000 + 1000);
-      return `GHG|${currentEmployee.id}|${type.code}|${date}|${hashCode}|${type.id}`;
-    }
-
-    function keyFor(typeId){
-      return `${currentEmployee.id}_${todayStr()}_${typeId}`;
-    }
-
-    function renderQRToDataURL(text){
-      return new Promise((resolve)=>{
-        const pre = document.getElementById('qrPreRender');
-        const holder = document.createElement('div');
-        pre.appendChild(holder);
-
-        new QRCode(holder, {
-          text,
-          width: 220,
-          height: 220,
-          correctLevel: QRCode.CorrectLevel.L
-        });
-
-        requestAnimationFrame(()=>{
-          try{
-            const canvas = holder.querySelector('canvas');
-            if (canvas){
-              const url = canvas.toDataURL('image/png');
-              holder.remove();
-              return resolve(url);
-            }
-            const img = holder.querySelector('img');
-            if (img){
-              if (img.complete && img.naturalWidth){
-                const url = img.src;
-                holder.remove();
-                return resolve(url);
-              }
-              img.onload = ()=>{ const url = img.src; holder.remove(); resolve(url); };
-              img.onerror = ()=>{ holder.remove(); resolve(null); };
-              return;
-            }
-          }catch(e){}
-          holder.remove();
-          resolve(null);
-        });
-      });
-    }
-
-    function setQRBoxHTML(html){
-      document.getElementById('modalQR').innerHTML = html;
-    }
-
-    /* ====== FIX (Android 10/11): QR-ni birbaşa modal içine render et ====== */
-    function renderQRDirectInto(el, text){
-      el.innerHTML = '';
-      new QRCode(el, {
-        text,
-        width: 220,
-        height: 220,
-        correctLevel: QRCode.CorrectLevel.L
-      });
-    }
-    /* ===================================================================== */
-
-    async function preloadAllQRCodes(){
-      if (!currentEmployee) return;
-
-      for (const t of TICKET_TYPES){
-        const k = keyFor(t.id);
-        if (!qrTextCache[k]) qrTextCache[k] = generateDailyQR(t);
-      }
-
-      const jobs = TICKET_TYPES.map(async (t)=>{
-        const k = keyFor(t.id);
-        if (qrImageCache[k]) return;
-        const url = await renderQRToDataURL(qrTextCache[k]);
-        if (url) qrImageCache[k] = url;
-      });
-
-      await Promise.all(jobs);
-    }
-
-    function renderTickets(){
-      const container = document.getElementById('ticketContainer');
-      container.innerHTML = '';
-
-      TICKET_TYPES.forEach(type=>{
-        const card = document.createElement('div');
-        card.className = 'ticket';
-        card.onclick = ()=> showTicket(type);
-        card.innerHTML = `
-          <div class="icon">${type.icon}</div>
-          <div class="name">${type.name}</div>
-          <div class="time">${type.time}</div>
-          <div class="badge">AKTİV</div>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    async function showTicket(type){
-      if (!currentEmployee) return;
-
-      document.getElementById('qrTicketInfo').textContent =
-        `${currentEmployee.fullName} • ${type.name} • ${todayStr()}`;
-
-      openModal('qrModal');
-
-      const k = keyFor(type.id);
-      if (!qrTextCache[k]) qrTextCache[k] = generateDailyQR(type);
-
-      // loader göstər
-      setQRBoxHTML(`<div class="qrStatusText"><div style="display:grid;place-items:center;gap:10px;">
-        <div class="qrLoader"></div>
-        <div style="font-weight:900;">Yüklənir...</div>
-      </div></div>`);
-
-      // Android 10/11 üçün: modal DOM tam otursun
-      await new Promise(r => setTimeout(r, 30));
-
-      // FIX: dataURL/img istifadə etmədən birbaşa modal içində QR render
-      const box = document.getElementById('modalQR');
-      renderQRDirectInto(box, qrTextCache[k]);
-    }
-
-    function closeQRModal(e){
-      if (!e || e.target.id === 'qrModal'){
-        hideModal('qrModal');
-        setQRBoxHTML('');
-      }
-    }
-
-    function renderRatingStars(){
-      const wrap = document.getElementById('ratingStars');
-      wrap.innerHTML = '';
-      for (let i=1;i<=5;i++){
-        const b = document.createElement('button');
-        b.type='button';
-        b.className = 'starBtn ' + (i<=selectedRating ? 'active' : '');
-        b.textContent = '★';
-        b.onclick = ()=>{ selectedRating=i; renderRatingStars(); };
-        wrap.appendChild(b);
-      }
-    }
-
-    function openRatingModal(){
-      if (!currentEmployee) return;
-      selectedRating = 0;
-      document.getElementById('ratingReason').value = '';
-      renderRatingStars();
-      openModal('ratingModal');
-    }
-    function closeRatingModal(e){
-      if (!e || e.target.id === 'ratingModal') hideModal('ratingModal');
-    }
-
-    async function submitRating(){
-      const reason = document.getElementById('ratingReason').value.trim();
-      const btn = document.getElementById('ratingSubmitBtn');
-
-      if (!selectedRating) return alert('Zəhmət olmasa ulduz seçin.');
-      if (!reason) return alert('Səbəbi yazın.');
-
-      btn.disabled = true;
-      btn.textContent = 'Göndərilir...';
-
-      try{
-        const url = `${SHEET_API_URL}?action=submitRating&employeeId=${encodeURIComponent(currentEmployee.id)}&ratingStars=${encodeURIComponent(selectedRating)}&ratingText=${encodeURIComponent(reason)}`;
-        const res = await fetchJSONP(url);
-        if (res.status === 'success'){
-          alert('Qiymətləndirmə göndərildi ✅');
-          closeRatingModal();
-        } else {
-          alert(res.message || 'Göndərilmədi');
-        }
-      }catch(e){
-        alert('Bağlantı xətası!');
-      }finally{
-        btn.disabled = false;
-        btn.textContent = 'Göndər';
-      }
-    }
-
-    async function handleLogin(e){
-      e.preventDefault();
-      clearError();
-
-      const id = document.getElementById('employeeId').value.trim();
-      const pass = document.getElementById('employeePass').value.trim();
-
-      const btn = document.getElementById('loginBtn');
-      btn.disabled = true;
-      btn.textContent = 'Yoxlanılır...';
-
-      try{
-        const url = `${SHEET_API_URL}?action=login&id=${encodeURIComponent(id)}&pass=${encodeURIComponent(pass)}`;
-        const data = await fetchJSONP(url);
-
-        if (data.status === 'success'){
-          currentEmployee = { id, fullName: (data.employee && data.employee.fullName) ? data.employee.fullName : '' };
-          localStorage.setItem('ghg_employee', JSON.stringify(currentEmployee));
-
-          const remember = document.getElementById('rememberCreds')?.checked;
-          if (remember) saveCreds(id, pass);
-          else clearCreds();
-
-          qrTextCache = {};
-          qrImageCache = {};
-          document.getElementById('qrPreRender').innerHTML = '';
-
-          document.getElementById('displayName').textContent = currentEmployee.fullName;
-          document.getElementById('displayId').textContent = currentEmployee.id;
-          document.getElementById('dateInfo').textContent = '📅 ' + todayStr();
-
-          renderTickets();
-          preloadAllQRCodes();
-          startDailyScansAutoRefresh();
-
-          animateLoginToApp();
-
-        } else if (data.status === 'invalid_pass'){
-          showError('❌ Yanlış parol!');
-        } else if (data.status === 'not_found'){
-          showError('❌ İşçi tapılmadı!');
-        } else {
-          showError('❌ Xəta: ' + (data.message || 'Naməlum'));
-        }
-      }catch(err){
-        showError('❌ Bağlantı xətası!');
-      }finally{
-        btn.disabled = false;
-        btn.textContent = 'Daxil ol';
-      }
-    }
-
-    function logout(){
-      localStorage.removeItem('ghg_employee');
-      currentEmployee = null;
-      selectedRating = 0;
-
-      qrTextCache = {};
-      qrImageCache = {};
-      document.getElementById('qrPreRender').innerHTML = '';
-
-      hideModal('qrModal');
-      hideModal('ratingModal');
-      setQRBoxHTML('');
-
-      stopDailyScansAutoRefresh();
-      allDailyScans = [];
-
-      showLogin();
-      resetLoginCard();
-    }
-
-    const DAILY_SCANS_REFRESH_MS = 30000;
-
-    /* ===== Daily Scans ===== */
-    let allDailyScans = [];
-    let dailyScansTimer = null;
-
-    function scanStatusClass(status) {
-      if (!status) return 'other';
-      if (status === 'Təsdiqləndi' || status === 'Təsdiq') return 'ok';
-      if (status === 'Təkrar cəhd') return 'dup';
-      return 'other';
-    }
-
-    function renderDailyScans(scans) {
-      const list = document.getElementById('scanList');
-      const label = document.getElementById('scanCountLabel');
-      if (!scans || scans.length === 0) {
-        list.innerHTML = '<div class="scanEmpty">Bu gün heç bir skan yoxdur</div>';
-        if (label) label.textContent = '';
-        return;
-      }
-      if (label) label.textContent = scans.length + ' nəfər';
-      list.innerHTML = scans.map(s => {
-        const cls = scanStatusClass(s.status);
-        return `<div class="scanItem">
-          <span class="sTime">${s.time || ''}</span>
-          <span class="sName">${s.name || s.empId || ''}</span>
-          <span class="sType">${s.type || ''}</span>
-          <span class="scanStatus ${cls}">${s.status || ''}</span>
-        </div>`;
-      }).join('');
-    }
-
-    function filterScans() {
-      const q = (document.getElementById('scanSearch').value || '').trim().toLowerCase();
-      if (!q) {
-        renderDailyScans(allDailyScans);
-        return;
-      }
-      const filtered = allDailyScans.filter(s =>
-        (s.name || '').toLowerCase().includes(q) ||
-        (s.empId || '').toLowerCase().includes(q)
-      );
-      renderDailyScans(filtered);
-      const label = document.getElementById('scanCountLabel');
-      if (label) label.textContent = filtered.length + '/' + allDailyScans.length + ' nəfər';
-    }
-
-    async function loadDailyScans() {
-      try {
-        const url = `${SHEET_API_URL}?action=getDailyScans`;
-        const res = await fetchJSONP(url);
-        if (res && res.status === 'success') {
-          allDailyScans = res.scans || [];
-          filterScans();
-        }
-      } catch (e) {
-        console.error('loadDailyScans error:', e);
-      }
-    }
-
-    function startDailyScansAutoRefresh() {
-      if (dailyScansTimer) clearInterval(dailyScansTimer);
-      loadDailyScans();
-      dailyScansTimer = setInterval(loadDailyScans, DAILY_SCANS_REFRESH_MS);
-    }
-
-    function stopDailyScansAutoRefresh() {
-      if (dailyScansTimer) { clearInterval(dailyScansTimer); dailyScansTimer = null; }
-    }
-
-    window.onload = () => {
-      setupLogin3D();
-      applySavedCredsToForm();
-
-      const saved = localStorage.getItem('ghg_employee');
-      if (saved){
-        currentEmployee = JSON.parse(saved);
-
-        qrTextCache = {};
-        qrImageCache = {};
-        document.getElementById('qrPreRender').innerHTML = '';
-
-        document.getElementById('displayName').textContent = currentEmployee.fullName;
-        document.getElementById('displayId').textContent = currentEmployee.id;
-        document.getElementById('dateInfo').textContent = '📅 ' + todayStr();
-
-        renderTickets();
-        preloadAllQRCodes();
-        startDailyScansAutoRefresh();
-
-        document.getElementById('loginPage').style.display = 'none';
-        document.getElementById('mainApp').style.display = 'block';
-      }
-    };
-  </script>
+<script>
+/**
+ * Vacib: Buraya Apps Script Web App URL-ni yazın.
+ * Məsələn:
+ * const SCRIPT_URL = "https://script.google.com/macros/s/AKfycb.../exec";
+ */
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz4mkQRCMUPzlYdJDeo-HMnLnLoe8a5LTCxoVQ_ooyr2TEEmk7Zn9yP5_zhBd7iix_S/exec"; // <-- bunu doldurun
+
+let pendingDryToken = null;
+
+function setStatus(type, title, detail){
+  const el = document.getElementById('statusText');
+  const det = document.getElementById('statusDetail');
+  el.className = "statusText " + (type || "");
+  el.textContent = title || "";
+  det.textContent = detail || "";
+}
+
+function statusTagClass(statusText){
+  const s = (statusText || "").toLowerCase();
+  if (s.includes("təsdiqləndi")) return "ok";
+  if (s.includes("təkrar")) return "warn";
+  if (s.includes("xəta")) return "err";
+  if (s.includes("təsdiq")) return "warn";
+  return "";
+}
+
+function buildUrl(params){
+  const u = new URL(SCRIPT_URL);
+  Object.keys(params).forEach(k => u.searchParams.set(k, params[k]));
+  return u.toString();
+}
+
+async function apiGet(params){
+  if (!SCRIPT_URL){
+    throw new Error("SCRIPT_URL boşdur. Skan.html daxilində Apps Script Web App URL-ni yazın.");
+  }
+  const res = await fetch(buildUrl(params), { method: "GET", cache: "no-store" });
+  return await res.json();
+}
+
+function renderTable(items){
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+
+  if (!items || !items.length){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="5" class="muted">Məlumat yoxdur</td>`;
+    tbody.appendChild(tr);
+    return;
+  }
+
+  for (const it of items){
+    const tr = document.createElement("tr");
+    const cls = statusTagClass(it.statusText);
+    tr.innerHTML = `
+      <td>${escapeHtml(it.time || "")}</td>
+      <td>${escapeHtml(it.empId || "")}</td>
+      <td>${escapeHtml(it.fullName || "")}</td>
+      <td>${escapeHtml(it.ticketName || "")}</td>
+      <td><span class="tag ${cls}">${escapeHtml(it.statusText || "")}</span></td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function escapeHtml(s){
+  return String(s ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+async function refreshTodayScans(){
+  const q = document.getElementById("searchInput").value.trim();
+  const data = await apiGet({ action: "getTodayScans", q });
+
+  if (data.status !== "success"){
+    setStatus("err", "Xəta", data.message || "Bugünkü skanlar oxunmadı");
+    return;
+  }
+
+  document.getElementById("todayLabel").textContent = data.date || "-";
+  document.getElementById("totalLabel").textContent = String(data.total ?? 0);
+  renderTable(data.items || []);
+}
+
+async function scanNow(){
+  const qrData = document.getElementById("qrInput").value.trim();
+  if (!qrData){
+    setStatus("warn", "Diqqət", "qrData boşdur");
+    return;
+  }
+
+  setStatus("", "Yoxlanılır...", "Zəhmət olmasa gözləyin");
+  pendingDryToken = null;
+  document.getElementById("confirmBox").style.display = "none";
+
+  const data = await apiGet({ action: "scanTicket", qrData });
+
+  // nəticəni göstər
+  if (data.status === "success"){
+    setStatus("ok", data.message || "Təsdiqləndi", `${data.data?.adSoyad || ""} — ${data.data?.ticketType || ""}`);
+  } else if (data.status === "warning"){
+    setStatus("warn", data.message || "Xəbərdarlıq", `${data.data?.adSoyad || ""} — ${data.data?.ticketType || ""}`);
+  } else if (data.status === "confirm"){
+    pendingDryToken = data.token;
+    setStatus("warn", data.message || "Təsdiq tələb olunur", `${data.data?.adSoyad || ""} — ${data.data?.ticketType || ""}`);
+    document.getElementById("confirmBox").style.display = "block";
+  } else {
+    setStatus("err", "Xəta", data.message || "Skan zamanı xəta");
+  }
+
+  // hər skandan sonra bugünkü list yenilə
+  await refreshTodayScans();
+}
+
+async function confirmDry(){
+  if (!pendingDryToken){
+    setStatus("warn", "Diqqət", "Təsdiq tokeni yoxdur");
+    return;
+  }
+  setStatus("", "Təsdiqlənir...", "Zəhmət olmasa gözləyin");
+
+  const data = await apiGet({ action: "confirmDrySecond", token: pendingDryToken });
+
+  if (data.status === "success"){
+    setStatus("ok", data.message || "Təsdiqləndi", `${data.data?.adSoyad || ""} — ${data.data?.ticketType || ""}`);
+  } else if (data.status === "warning"){
+    setStatus("warn", data.message || "Xəbərdarlıq", `${data.data?.adSoyad || ""} — ${data.data?.ticketType || ""}`);
+  } else {
+    setStatus("err", "Xəta", data.message || "Təsdiq zamanı xəta");
+  }
+
+  pendingDryToken = null;
+  document.getElementById("confirmBox").style.display = "none";
+  await refreshTodayScans();
+}
+
+function wire(){
+  document.getElementById("apiBase").textContent = SCRIPT_URL ? "OK" : "SCRIPT_URL boşdur";
+  document.getElementById("btnScan").addEventListener("click", scanNow);
+  document.getElementById("btnRefresh").addEventListener("click", refreshTodayScans);
+
+  document.getElementById("btnConfirmDry").addEventListener("click", confirmDry);
+  document.getElementById("btnCancelConfirm").addEventListener("click", () => {
+    pendingDryToken = null;
+    document.getElementById("confirmBox").style.display = "none";
+    setStatus("", "Ləğv edildi", "Quru talon təsdiqi ləğv olundu");
+  });
+
+  // search yazdıqca auto filter (debounce)
+  let t = null;
+  document.getElementById("searchInput").addEventListener("input", () => {
+    if (t) clearTimeout(t);
+    t = setTimeout(() => refreshTodayScans().catch(err => setStatus("err","Xəta",err.message)), 250);
+  });
+
+  // ilk açılışda siyahını çək
+  refreshTodayScans().catch(err => setStatus("err","Xəta",err.message));
+
+  // istəsəniz: hər 10 saniyədən bir avtomatik yenilə
+  setInterval(() => {
+    refreshTodayScans().catch(()=>{});
+  }, 10000);
+}
+
+wire();
+</script>
 </body>
 </html>
