@@ -16,6 +16,8 @@ function doGet(e) {
       result = handleScanTicket_(e);
     } else if (action === 'checkScanStatus') {
       result = handleCheckScanStatus_(e);
+    } else if (action === 'getDailyScans') {
+      result = handleGetDailyScans_(e);
     } else {
       result = { status: 'error', message: 'Naməlum əməliyyat' };
     }
@@ -43,12 +45,10 @@ function sendJSONP_(data, callback) {
 }
 
 function openByIdSafe_(id, label) {
- codex/fix-issue-in-handlescanticket_-function-k8i65m
   try {
     return SpreadsheetApp.openById(id);
   } catch (openByIdErr) {
     try {
-      // Bəzi mühitlərdə openById method/property əlçatan olmur; Drive faylı ilə açırıq.
       const file = DriveApp.getFileById(id);
       return SpreadsheetApp.open(file);
     } catch (fallbackErr) {
@@ -57,22 +57,6 @@ function openByIdSafe_(id, label) {
   }
 }
 
-
-  const hasOpenById = SpreadsheetApp && typeof SpreadsheetApp.openById === 'function';
-  try {
-    if (hasOpenById) {
-      return SpreadsheetApp.openById(id);
-    }
-
-    // Bəzi mühitlərdə openById görünmür; Drive faylı ilə açırıq.
-    const file = DriveApp.getFileById(id);
-    return SpreadsheetApp.open(file);
-  } catch (e) {
-    throw new Error(`${label} açılmadı. ID/Access problemi. ID=${id} | ${e}`);
-  }
-}
-
-main
 function tzNow_() {
   return new Date();
 }
@@ -125,7 +109,6 @@ function ticketName_(code) {
     Q: 'Quru Talon'
   })[code] || 'Naməlum';
 }
- codex/fix-issue-in-handlescanticket_-function-k8i65m
 
 function handleLogin_(e) {
   const id = (e.parameter.id || '').toString().trim();
@@ -151,33 +134,6 @@ function handleLogin_(e) {
     const rowPass = String(data[i][passCol] || '').trim();
     const rowName = String(data[i][nameCol] || '').trim();
 
-
-
-function handleLogin_(e) {
-  const id = (e.parameter.id || '').toString().trim();
-  const pass = (e.parameter.pass || '').toString().trim();
-  if (!id || !pass) return { status: 'error', message: 'ID və parol tələb olunur' };
-
-  const empSS = openByIdSafe_(EMPLOYEES_FILE_ID, 'EMPLOYEES_FILE');
-  const sh = empSS.getSheetByName(EMP_SHEET_NAME) || empSS.getSheets()[0];
-
-  const data = sh.getDataRange().getValues();
-  if (data.length < 2) return { status: 'not_found' };
-
-  const headers = data[0].map((x) => String(x || '').trim().toLowerCase());
-  const idCol = headers.findIndex((h) => h === 'id' || h === 'i̇d' || h.includes('id'));
-  const passCol = headers.findIndex((h) => h === 'parol' || h.includes('parol'));
-  const nameHeaderIndex = headers.findIndex((h) => h.includes('ad') && h.includes('soyad'));
-  const nameCol = nameHeaderIndex >= 0 ? nameHeaderIndex : 2;
-
-  if (idCol < 0 || passCol < 0) return { status: 'error', message: 'Employees sütunları tapılmadı (ID/Parol)' };
-
-  for (let i = 1; i < data.length; i++) {
-    const rowId = String(data[i][idCol] || '').trim();
-    const rowPass = String(data[i][passCol] || '').trim();
-    const rowName = String(data[i][nameCol] || '').trim();
-
- main
     if (rowId === id) {
       if (rowPass !== pass) return { status: 'invalid_pass' };
       return { status: 'success', employee: { id, fullName: rowName } };
@@ -304,4 +260,31 @@ function handleCheckScanStatus_(e) {
   const used = typeId === 'dry' ? confirmed >= 2 : confirmed >= 1;
 
   return { status: 'success', used };
+}
+
+function handleGetDailyScans_(e) {
+  const today = todayDDMMYYYY_();
+  const sh = getScannerSheet_();
+  const last = sh.getLastRow();
+  if (last < 2) return { status: 'success', date: today, scans: [] };
+
+  const values = sh.getRange(2, 1, last - 1, 8).getValues();
+  const scans = [];
+  for (let i = 0; i < values.length; i++) {
+    const rowDate = String(values[i][0] || '').trim();
+    if (rowDate !== today) continue;
+
+    scans.push({
+      date:   rowDate,
+      time:   String(values[i][1] || '').trim(),
+      empId:  String(values[i][3] || '').trim(),
+      name:   String(values[i][4] || '').trim(),
+      type:   String(values[i][5] || '').trim(),
+      status: String(values[i][7] || '').trim()
+    });
+  }
+
+  // Return in reverse order (newest first)
+  scans.reverse();
+  return { status: 'success', date: today, scans };
 }

@@ -41,7 +41,10 @@
     .countdown-text{color:#999;font-size:.9em;margin-top:5px}
 
     .last-scan{background:#fff;border-radius:20px;padding:20px;box-shadow:0 4px 15px rgba(0,0,0,.1)}
-    .last-scan h2{font-size:1.1em;color:#333;margin-bottom:15px}
+    .last-scan h2{font-size:1.1em;color:#333;margin-bottom:10px}
+    .search-box{width:100%;padding:9px 14px;border:1.5px solid #e0e0e0;border-radius:12px;font-size:.95em;outline:none;margin-bottom:12px;box-sizing:border-box;transition:border-color .2s}
+    .search-box:focus{border-color:#667eea}
+    .scan-count{font-size:.8em;color:#999;margin-bottom:8px}
     .scan-item{display:flex;align-items:center;padding:12px;border-bottom:1px solid #eee}
     .scan-item:last-child{border-bottom:none}
     .scan-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;margin-right:12px;flex-shrink:0}
@@ -64,9 +67,11 @@
     </div>
 
     <div class="last-scan">
-      <h2>📋 Son skan edilənlər</h2>
+      <h2>📋 Bugünkü skanlar</h2>
+      <input type="search" class="search-box" id="searchBox" placeholder="🔍 Ad ilə axtarın..." oninput="filterScans()">
+      <div class="scan-count" id="scanCount"></div>
       <div id="scanList">
-        <div style="text-align:center;color:#999;padding:20px;">Hələ heç bir skan edilməyib</div>
+        <div style="text-align:center;color:#999;padding:20px;">Yüklənir...</div>
       </div>
     </div>
   </div>
@@ -108,7 +113,7 @@
     const DRY_TTL_MS = 24 * 60 * 60 * 1000;
 
     let isProcessing = false;
-    let scanHistory = [];
+    let scanHistory = [];   // [{name, id, type, msg, time, warn, err}] — newest first
     let html5QrCode = null;
     let countdownInterval = null;
 
@@ -200,11 +205,30 @@
 
     function addScan(item){
       const time = new Date().toLocaleTimeString('az-AZ');
-      scanHistory.unshift({...item, time});
-      if (scanHistory.length > 10) scanHistory.pop();
+      scanHistory.unshift({...item, time, _sessionEntry: true});
+      renderScanList();
+    }
+
+    function renderScanList(){
+      const q = (document.getElementById('searchBox').value || '').trim().toLowerCase();
+      const filtered = q
+        ? scanHistory.filter(s => (s.name || '').toLowerCase().includes(q) || (s.id || '').toLowerCase().includes(q))
+        : scanHistory;
+
+      const countEl = document.getElementById('scanCount');
+      countEl.textContent = filtered.length
+        ? `${filtered.length} / ${scanHistory.length} skan göstərilir`
+        : (scanHistory.length ? 'Axtarış nəticəsi tapılmadı' : '');
 
       const list = document.getElementById('scanList');
-      list.innerHTML = scanHistory.map(scan=>{
+      if (!filtered.length) {
+        list.innerHTML = `<div style="text-align:center;color:#999;padding:20px;">${
+          scanHistory.length ? 'Axtarış nəticəsi tapılmadı' : 'Bu gün hələ heç bir skan edilməyib'
+        }</div>`;
+        return;
+      }
+
+      list.innerHTML = filtered.map(scan=>{
         let icon='✓', cls='ok';
         if (scan.err) { icon='✕'; cls='err'; }
         else if (scan.warn) { icon='⚠'; cls='warn'; }
@@ -220,6 +244,33 @@
           </div>
         `;
       }).join('');
+    }
+
+    function filterScans(){
+      renderScanList();
+    }
+
+    async function loadDailyScans(){
+      try {
+        const res = await fetchJSONP(
+          `${SHEET_API_URL}?action=getDailyScans`,
+          { timeoutMs: 15000, retry: 1 }
+        );
+        if (res && res.status === 'success' && Array.isArray(res.scans)) {
+          const sheetScans = res.scans.map(s => {
+            const warn = s.status === 'Təkrar cəhd';
+            return { name: s.name || '-', id: s.empId || '-', type: s.type || '-', msg: s.status || '-', time: s.time || '', warn, err: false };
+          });
+          // Keep only session entries not yet reflected in the sheet (avoid duplicates)
+          const sheetKey = s => `${s.id}|${s.type}|${s.msg}`;
+          const sheetKeys = new Set(sheetScans.map(sheetKey));
+          const freshSession = scanHistory.filter(s => s._sessionEntry && !sheetKeys.has(sheetKey(s)));
+          scanHistory = [...freshSession, ...sheetScans];
+          renderScanList();
+        }
+      } catch(e) {
+        console.warn('loadDailyScans xətası:', e);
+      }
     }
 
     function startCountdown(){
@@ -319,6 +370,7 @@
       if (countdownInterval){ clearInterval(countdownInterval); countdownInterval = null; }
 
       updateStatus('waiting','QR kod gözlənilir...');
+      loadDailyScans();
     }
 
     function shouldDropDuplicate(qrText){
@@ -528,7 +580,7 @@
       });
     }
 
-    window.onload = startCamera;
+    window.onload = () => { loadDailyScans(); startCamera(); };
     window.onbeforeunload = ()=>{
       try{ if (html5QrCode) html5QrCode.stop(); }catch(e){}
       if (countdownInterval) clearInterval(countdownInterval);
