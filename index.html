@@ -64,163 +64,17 @@
     </div>
 
     <div class="last-scan">
-      <!-- ✅ dəyişdi -->
-      <h2>📋 Bu gün skan edilənlər</h2>
+      <h2>📋 Son skan edilənlər</h2>
       <div id="scanList">
-        <div style="text-align:center;color:#999;padding:20px;">Yüklənir...</div>
+        <div style="text-align:center;color:#999;padding:20px;">Hələ heç bir skan edilməyib</div>
       </div>
     </div>
   </div>
-
- codex/add-confirmation-sound-for-actions-pgq9ev
-    <script>
-        // WEB APP URL-NİZİ BURAYA YAZIN (BOŞLUQ OLMASIN!)
-        const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwkBkbhW9ea3rlnvL5lbkTDti4IK0yVPfgCgemnYE3WkH4rg1MFIc9nxOj7K3QZhRW5/exec';
-        
-        let isProcessing = false;
-        let scanHistory = [];
-        let html5QrCode = null;
-        let countdownInterval = null;
-        let audioContext = null;
-
-        function ensureAudioContext() {
-            if (!audioContext) {
-                const Ctx = window.AudioContext || window.webkitAudioContext;
-                if (!Ctx) return null;
-                audioContext = new Ctx();
-            }
-
-            if (audioContext.state === 'suspended') {
-                audioContext.resume().catch(() => {});
-            }
-
-            return audioContext;
-        }
-
-        function playTone(frequency, duration, startAt, volume = 0.22) {
-            const ctx = ensureAudioContext();
-            if (!ctx) return;
-
-            const oscillator = ctx.createOscillator();
-            const gain = ctx.createGain();
-
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(frequency, startAt);
-
-            gain.gain.setValueAtTime(0, startAt);
-            gain.gain.linearRampToValueAtTime(volume, startAt + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.001, startAt + duration);
-
-            oscillator.connect(gain);
-            gain.connect(ctx.destination);
-
-            oscillator.start(startAt);
-            oscillator.stop(startAt + duration);
-        }
-
-        function playFeedbackSound(resultType) {
-            const ctx = ensureAudioContext();
-            if (!ctx) return;
-
-            const now = ctx.currentTime;
-
-            if (resultType === 'success') {
-                playTone(880, 0.18, now, 0.24);
-                playTone(1175, 0.25, now + 0.2, 0.24);
-            } else if (resultType === 'warning') {
-                playTone(520, 0.22, now, 0.24);
-                playTone(420, 0.28, now + 0.24, 0.24);
-            } else {
-                playTone(350, 0.35, now, 0.2);
-            }
-        }
-
-        // JSONP fetch
-        function fetchJSONP(url) {
-            return new Promise((resolve, reject) => {
-                const cb = 'cb_' + Date.now();
-                const script = document.createElement('script');
-                
-                window[cb] = (data) => {
-                    delete window[cb];
-                    script.remove();
-                    resolve(data);
-                };
-                
-                setTimeout(() => {
-                    delete window[cb];
-                    script.remove();
-                    reject(new Error('Timeout'));
-                }, 10000);
-                
-                script.src = url + '&callback=' + cb;
-                document.head.appendChild(script);
-            });
-        }
-
-        // 10 saniyəlik nəticə ekranını göstər
-        function showResult(data) {
-            const overlay = document.getElementById('resultOverlay');
-            const card = document.getElementById('resultCard');
-            const icon = document.getElementById('resultIcon');
-            const title = document.getElementById('resultTitle');
-            const countdownEl = document.getElementById('countdown');
-            
-            // Məlumatları doldur
-            document.getElementById('detailName').textContent = data.name || '-';
-            document.getElementById('detailId').textContent = data.id || '-';
-            document.getElementById('detailTicket').textContent = data.type || '-';
-            document.getElementById('detailStatus').textContent = data.statusText || '-';
-            
-            // Stil təyin et
-            card.className = 'result-card result-' + data.resultType;
-            
-            if (data.resultType === 'success') {
-                icon.textContent = '✓';
-                title.textContent = 'Təsdiqləndi';
-            } else if (data.resultType === 'warning') {
-                icon.textContent = '⚠';
-                title.textContent = 'Xəbərdarlıq';
-            } else {
-                icon.textContent = '✕';
-                title.textContent = 'Xəta';
-            }
-
-            playFeedbackSound(data.resultType);
-            
-            // Ekranı göstər
-            overlay.style.display = 'flex';
-            
-            // Geri sayım başlat
-            let seconds = 10;
-            countdownEl.textContent = seconds;
-            
-            if (countdownInterval) clearInterval(countdownInterval);
-            
-            countdownInterval = setInterval(() => {
-                seconds--;
-                countdownEl.textContent = seconds;
-                
-                if (seconds <= 0) {
-                    clearInterval(countdownInterval);
-                    hideResult();
-                }
-            }, 1000);
-            
-            // Kliklə bağlamaq üçün
-            overlay.onclick = function(e) {
-                if (e.target === overlay) {
-                    clearInterval(countdownInterval);
-                    hideResult();
-                }
-            };
-        }
 
   <div class="result-overlay" id="resultOverlay">
     <div class="result-card" id="resultCard">
       <div class="result-icon" id="resultIcon">✓</div>
       <div class="result-title" id="resultTitle">Təsdiqləndi</div>
- main
 
       <div class="result-details">
         <div class="detail-row"><span class="detail-label">Əməkdaş:</span><span class="detail-value" id="detailName">-</span></div>
@@ -238,73 +92,58 @@
   </div>
 
   <script>
-    const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzurmREY0M8WXoc1KJSKueLK48e_6gF7Z3drm2a9iFT4F7BNNb2QWXMXlYKHWjxjCYx/exec';
+    const SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzWxSTDHVUEFHtUbS_fiyk-xXoJX92LQPtYkAez5M89tkp696HlhkCetgxS41waHoR0/exec';
 
+    // neçə saniyəyə overlay bağlansın
     const COUNTDOWN_SECONDS = 5;
+
+    // eyni QR ardıcıl oxunanda (kamera “titrəməsi”) filter
     const LAST_QR_COOLDOWN_MS = 900;
+
+    // QURU QAYDA (sənin dediyin):
+    // 1-ci scan -> normal scanTicket (sheetə düşür)
+    // 2-ci scan -> “Təsdiq et” düyməsi çıxır (hələ sheetə Təsdiq düşməyəcək)
+    // Düyməyə bas -> confirmDrySecond çağrılır və SHEET-ə "Təsdiq" düşməlidir
+    // 3-cü scan -> scanTicket yenə çağrılır və "Təkrar cəhd" (sheetə də düşür)
     const DRY_TTL_MS = 24 * 60 * 60 * 1000;
 
     let isProcessing = false;
+    let scanHistory = [];
     let html5QrCode = null;
     let countdownInterval = null;
 
+    // confirm state
     let pendingConfirmToken = null;
     let pendingConfirmQrData = null;
     let pendingConfirmMeta = null;
 
+    // dedup
     let lastQrText = '';
     let lastQrAt = 0;
 
-    const dryCountMap = new Map();
+    // quru sayğacı
+    const dryCountMap = new Map(); // qrData -> {count, ts}
 
-    /* ===== ✅ NEW: Sheet-dən bu gün skan edilənlər ===== */
-    const TODAY_REFRESH_MS = 15000; // 15 saniyə
-    let todayTimer = null;
-
-    function escapeHtml_(s){
-      return String(s ?? '')
-        .replaceAll('&','&amp;')
-        .replaceAll('<','&lt;')
-        .replaceAll('>','&gt;')
-        .replaceAll('"','&quot;')
-        .replaceAll("'","&#039;");
+    function isDryQR(qrData){
+      // format: GHG|empId|Q|dd.mm.yyyy|hash|dry
+      const parts = String(qrData || '').split('|');
+      const code = parts[2];  // Q
+      const last = parts[5];  // dry
+      return code === 'Q' || last === 'dry' || String(qrData).includes('|Q|') || String(qrData).includes('|dry');
     }
 
-    function normStatus_(s){
-      const t = String(s||'').toLowerCase();
-      if (t.includes('təkrar')) return {cls:'warn', icon:'⚠', text: s || 'Təkrar cəhd'};
-      if (t.includes('xəta') || t.includes('error')) return {cls:'err', icon:'✕', text: s || 'Xəta'};
-      // default: təsdiq
-      return {cls:'ok', icon:'✓', text: s || 'Təsdiq'};
+    function getDryCount(qrData){
+      const row = dryCountMap.get(qrData);
+      if (!row) return 0;
+      if (Date.now() - row.ts > DRY_TTL_MS){ dryCountMap.delete(qrData); return 0; }
+      return row.count || 0;
+    }
+    function setDryCount(qrData, count){
+      if (!qrData) return;
+      dryCountMap.set(qrData, {count, ts: Date.now()});
     }
 
-    function renderTodayList(items){
-      const list = document.getElementById('scanList');
-
-      if (!items || !items.length){
-        list.innerHTML = `<div style="text-align:center;color:#999;padding:20px;">Hələ heç bir skan edilməyib</div>`;
-        return;
-      }
-
-      list.innerHTML = items.map(it=>{
-        const name = it.adSoyad || '-';           // Ad Soyad Ata adı
-        const type = it.ticketType || '-';       // Yeməyin növü
-        const st = normStatus_(it.statusText);   // Təsdiq / Təkrar cəhd
-        const time = it.time || '';              // Saat (string kimi)
-
-        return `
-          <div class="scan-item">
-            <div class="scan-icon ${st.cls}">${st.icon}</div>
-            <div class="scan-info">
-              <div class="scan-name">${escapeHtml_(name)}</div>
-              <div class="scan-detail">${escapeHtml_(type)} | ${escapeHtml_(st.text)}</div>
-              <div class="scan-time">${time ? ('Saat ' + escapeHtml_(time)) : ''}</div>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
+    // ✅ JSONP daha stabil: timeout clear + cleanup
     function fetchJSONP(url, {timeoutMs=12000, retry=1} = {}) {
       return new Promise((resolve, reject) => {
         const cb = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
@@ -325,7 +164,9 @@
           if (finished) return;
           finished = true;
           cleanup();
-          if (retry > 0) return resolve(fetchJSONP(url, {timeoutMs, retry: retry-1}));
+          if (retry > 0) {
+            return resolve(fetchJSONP(url, {timeoutMs, retry: retry-1}));
+          }
           reject(err);
         }
 
@@ -337,57 +178,48 @@
         };
 
         timer = setTimeout(() => fail(new Error('Timeout')), timeoutMs);
+
         script.onerror = () => fail(new Error('Load error'));
 
+        // ✅ cache qırmaq üçün t parametri əlavə edirik
         const nonce = Date.now();
-        script.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb + '&t=' + nonce;
+        script.src = url
+          + (url.includes('?') ? '&' : '?')
+          + 'callback=' + cb
+          + '&t=' + nonce;
+
         document.head.appendChild(script);
       });
-    }
-
-    async function loadTodayScans(){
-      try{
-        const res = await fetchJSONP(`${SHEET_API_URL}?action=getTodayScans&limit=50`, {timeoutMs:12000, retry:1});
-        if (!res || res.status !== 'success') throw new Error(res?.message || 'getTodayScans error');
-
-        const items = Array.isArray(res.items) ? res.items : [];
-        renderTodayList(items);
-      }catch(e){
-        // səssizcə saxla, UI pozulmasın
-        const list = document.getElementById('scanList');
-        if (list) list.innerHTML = `<div style="text-align:center;color:#999;padding:20px;">Yüklənmədi</div>`;
-      }
-    }
-
-    function startTodayPolling(){
-      if (todayTimer) clearInterval(todayTimer);
-      loadTodayScans();
-      todayTimer = setInterval(loadTodayScans, TODAY_REFRESH_MS);
-    }
-    /* ===== /NEW ===== */
-
-    function isDryQR(qrData){
-      const parts = String(qrData || '').split('|');
-      const code = parts[2];
-      const last = parts[5];
-      return code === 'Q' || last === 'dry' || String(qrData).includes('|Q|') || String(qrData).includes('|dry');
-    }
-
-    function getDryCount(qrData){
-      const row = dryCountMap.get(qrData);
-      if (!row) return 0;
-      if (Date.now() - row.ts > DRY_TTL_MS){ dryCountMap.delete(qrData); return 0; }
-      return row.count || 0;
-    }
-    function setDryCount(qrData, count){
-      if (!qrData) return;
-      dryCountMap.set(qrData, {count, ts: Date.now()});
     }
 
     function updateStatus(type, text){
       const s = document.getElementById('status');
       s.className = 'status status-' + type;
       s.textContent = text;
+    }
+
+    function addScan(item){
+      const time = new Date().toLocaleTimeString('az-AZ');
+      scanHistory.unshift({...item, time});
+      if (scanHistory.length > 10) scanHistory.pop();
+
+      const list = document.getElementById('scanList');
+      list.innerHTML = scanHistory.map(scan=>{
+        let icon='✓', cls='ok';
+        if (scan.err) { icon='✕'; cls='err'; }
+        else if (scan.warn) { icon='⚠'; cls='warn'; }
+
+        return `
+          <div class="scan-item">
+            <div class="scan-icon ${cls}">${icon}</div>
+            <div class="scan-info">
+              <div class="scan-name">${scan.name}</div>
+              <div class="scan-detail">${scan.id} ${scan.type ? '| ' + scan.type : ''} | ${scan.msg}</div>
+              <div class="scan-time">${scan.time}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
 
     function startCountdown(){
@@ -414,6 +246,8 @@
     }
 
     function showResult({resultType, name, id, type, statusText, mode='auto', confirmToken=null}){
+      // mode: 'auto' (countdown) | 'confirm' (düyməli) | 'confirmInfo' (düyməsiz confirm info)
+
       document.getElementById('countdown').textContent = COUNTDOWN_SECONDS;
 
       const overlay = document.getElementById('resultOverlay');
@@ -433,6 +267,7 @@
 
       pendingConfirmToken = confirmToken || null;
 
+      // reset
       confirmBtn.style.display = 'none';
       confirmBtn.disabled = false;
       confirmBtn.textContent = '✅ Təsdiq et';
@@ -441,6 +276,7 @@
       closeBtn.style.opacity = '1';
       closeBtn.style.cursor = 'pointer';
 
+      // countdown default gizlət
       document.getElementById('countdown').style.display='none';
       document.getElementById('countdownText').style.display='none';
       if (countdownInterval){ clearInterval(countdownInterval); countdownInterval = null; }
@@ -455,7 +291,12 @@
         if (mode === 'auto') startCountdown();
       } else if (resultType === 'confirm'){
         icon.textContent='?'; title.textContent='Təsdiqləndi';
-        if (mode === 'confirm') confirmBtn.style.display = 'block';
+        if (mode === 'confirm') {
+          confirmBtn.style.display = 'block';
+        } else {
+          // confirmInfo: düyməsiz
+          confirmBtn.style.display = 'none';
+        }
       } else {
         icon.textContent='✕'; title.textContent='Xəta';
         closeBtn.disabled = true; closeBtn.style.opacity = '.6'; closeBtn.style.cursor = 'not-allowed';
@@ -496,6 +337,7 @@
       updateStatus('scanning','Yoxlanılır...');
 
       try{
+        // ✅ HƏR scan serverə gedir -> sheetə düşür
         const res = await fetchJSONP(
           `${SHEET_API_URL}?action=scanTicket&qrData=${encodeURIComponent(qrData)}`,
           { timeoutMs: 12000, retry: 1 }
@@ -506,18 +348,21 @@
         const ticketType = res.data?.ticketType || (isDryQR(qrData) ? 'Quru Talon' : '-');
         const isDry = isDryQR(qrData) || String(ticketType).toLowerCase().includes('quru');
 
+        // ✅ QURU LOGİKA
         if (isDry){
           const c = getDryCount(qrData);
 
+          // 3-cü və sonrası -> Təkrar cəhd (sheetə də scanTicket ilə düşür)
           if (c >= 2){
             updateStatus('warning','Təkrar cəhd');
+            addScan({name, id, type:'Quru Talon', msg:'Təkrar cəhd', warn:true, err:false});
             showResult({resultType:'warning', name, id, type:'Quru Talon', statusText:'Təkrar cəhd', mode:'auto'});
-            // ✅ scan oldu, siyahını yenilə
-            loadTodayScans();
             return;
           }
 
+          // 2-ci scan -> confirm düyməli ekran (sheetə Təsdiq yalnız düymə basanda düşəcək)
           if (c === 1){
+            // token haradan gəlirsə hamısını yoxlayırıq
             const token =
               res.token ||
               res.confirmToken ||
@@ -530,6 +375,8 @@
             pendingConfirmToken = token;
 
             updateStatus('warning','Təsdiq');
+            addScan({name, id, type:'Quru Talon', msg:'Təsdiq et (2-ci scan)', warn:true, err:false});
+
             showResult({
               resultType:'confirm',
               name, id,
@@ -538,29 +385,30 @@
               mode:'confirm',
               confirmToken: token
             });
-            // ✅ scan oldu, siyahını yenilə
-            loadTodayScans();
             return;
           }
 
+          // 1-ci scan -> normal göstər, sonra count=1 et
           setDryCount(qrData, 1);
         }
 
+        // ✅ NORMAL AXIN (və quru 1-ci scan)
         if (res.status === 'success'){
           updateStatus('success', res.message || 'Təsdiqləndi');
+          addScan({name, id, type: ticketType, msg: res.message || 'Təsdiqləndi', warn:false, err:false});
           showResult({resultType:'success', name, id, type: ticketType, statusText: res.message || 'Təsdiqləndi', mode:'auto'});
-          loadTodayScans();
           return;
         }
 
         if (res.status === 'warning'){
           updateStatus('warning', res.message || 'Xəbərdarlıq');
+          addScan({name, id, type: ticketType, msg: res.message || 'Xəbərdarlıq', warn:true, err:false});
           showResult({resultType:'warning', name, id, type: ticketType, statusText: res.message || 'Xəbərdarlıq', mode:'auto'});
-          loadTodayScans();
           return;
         }
 
         if (res.status === 'confirm'){
+          // digər talonlar üçün backend confirm
           const token =
             res.token ||
             res.confirmToken ||
@@ -572,6 +420,7 @@
           pendingConfirmMeta = { name, id, type: ticketType };
           pendingConfirmToken = token;
 
+          addScan({name, id, type: ticketType, msg: res.message || 'Təsdiq tələb olunur', warn:true, err:false});
           showResult({
             resultType:'confirm',
             name, id, type: ticketType,
@@ -579,20 +428,21 @@
             mode:'confirm',
             confirmToken: token
           });
-          loadTodayScans();
           return;
         }
 
         updateStatus('error', res.message || 'Xəta');
+        addScan({name:'Xəta', id:'-', type:'-', msg: res.message || 'Xəta', err:true});
         showResult({resultType:'error', name:'Xəta', id:'-', type:'-', statusText: res.message || 'Xəta', mode:'auto'});
-        loadTodayScans();
 
       }catch(e){
         updateStatus('error','Serverə qoşulmadı');
+        addScan({name:'Bağlantı xətası', id:'-', type:'-', msg:'Serverə qoşulmadı', err:true});
         showResult({resultType:'error', name:'Bağlantı xətası', id:'-', type:'-', statusText:'Serverə qoşulmadı', mode:'auto'});
       }
     }
 
+    // ✅ 2-ci quru scan -> "Təsdiq et" düyməsi
     document.getElementById('confirmBtn').onclick = async () => {
       const btn = document.getElementById('confirmBtn');
       if (!pendingConfirmQrData) return;
@@ -605,6 +455,8 @@
       const token = pendingConfirmToken || '';
 
       try{
+        // ✅ IMPORTANT: cache olmasın deyə t=... əlavə edirik
+        // ✅ IMPORTANT: bəzən backend tokeni "confirmToken" gözləyir, ona görə ikisini də göndəririk
         const url =
           `${SHEET_API_URL}?action=confirmDrySecond` +
           `&token=${encodeURIComponent(token)}` +
@@ -613,16 +465,27 @@
 
         const res = await fetchJSONP(url, { timeoutMs: 12000, retry: 1 });
 
+        // ✅ burada sheetə düşməsinin yeganə yolu: backend confirmDrySecond içində yazmalıdır
+        // biz user-ə düzgün mesaj göstərəcəyik, amma server error verirsə də göstərəcəyik
         if (res && (res.status === 'error' || res.status === 'failed')){
           updateStatus('error', res.message || 'Təsdiq alınmadı');
+          addScan({name: meta.name, id: meta.id, type: meta.type, msg: res.message || 'Təsdiq alınmadı', err:true});
           showResult({resultType:'error', name: meta.name, id: meta.id, type: meta.type, statusText: res.message || 'Təsdiq alınmadı', mode:'auto'});
-          loadTodayScans();
           return;
         }
 
+        // ✅ 2-ci scan təsdiqləndi -> count=2 (3-cü scan “Təkrar cəhd”)
         setDryCount(qrData, 2);
 
         updateStatus('success','Təsdiq');
+        addScan({
+          name: res?.data?.adSoyad || meta.name,
+          id: res?.data?.empId || meta.id,
+          type: res?.data?.ticketType || meta.type,
+          msg: res?.message || 'Təsdiq',
+          warn:false, err:false
+        });
+
         showResult({
           resultType:'success',
           name: res?.data?.adSoyad || meta.name,
@@ -631,12 +494,11 @@
           statusText: res?.message || 'Təsdiq ✅',
           mode:'auto'
         });
-        loadTodayScans();
 
       }catch(e){
         updateStatus('error','Təsdiq göndərilmədi');
+        addScan({name: meta.name, id: meta.id, type: meta.type, msg:'Təsdiq göndərilmədi', err:true});
         showResult({resultType:'error', name: meta.name, id: meta.id, type: meta.type, statusText:'Təsdiq göndərilmədi', mode:'auto'});
-        loadTodayScans();
       }finally{
         btn.textContent = 'Göndərildi ✅';
       }
@@ -666,16 +528,10 @@
       });
     }
 
-    window.onload = () => {
-      startCamera();
-      // ✅ səhifə açılan kimi bu gün skan edilənləri sheetdən oxu
-      startTodayPolling();
-    };
-
+    window.onload = startCamera;
     window.onbeforeunload = ()=>{
       try{ if (html5QrCode) html5QrCode.stop(); }catch(e){}
       if (countdownInterval) clearInterval(countdownInterval);
-      if (todayTimer) clearInterval(todayTimer);
     };
   </script>
 </body>
